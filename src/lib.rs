@@ -10,6 +10,7 @@ extern crate diesel;
 extern crate dotenv;
 #[macro_use]
 extern crate failure;
+extern crate handlebars;
 #[macro_use]
 extern crate lazy_static;
 extern crate regex;
@@ -24,12 +25,14 @@ use diesel::prelude::*;
 use diesel::r2d2;
 use diesel::result::Error;
 use dotenv::dotenv;
+use handlebars::Handlebars;
 
 pub type SqliteConnectionManager = r2d2::ConnectionManager<SqliteConnection>;
 pub type SqliteConnectionPool = r2d2::Pool<SqliteConnectionManager>;
 
 pub struct ServerState {
     pub db: SqliteConnectionPool,
+    pub template: Handlebars,
 }
 
 #[derive(Fail, Debug)]

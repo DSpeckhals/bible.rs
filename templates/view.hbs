@@ -1,0 +1,11 @@
+{{#*inline "page" ~}}
+    <h1>{{reference}}</h1>
+    <ul>
+    {{#each verses as |v| ~}}
+        <li>
+            <b>{{v.verse}}</b> {{v.words}}
+        </li>
+    {{/each ~}}
+    </ul>
+{{/inline ~}}
+{{~> base ~}}
