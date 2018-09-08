@@ -1,0 +1,25 @@
+[package]
+name = "receptus"
+version = "0.1.0"
+authors = ["Dustin Speckhals <dustin1114@gmail.com>"]
+
+[dependencies]
+actix-web = "0.7.5"
+clap = "2.32.0"
+diesel = { version = "1.3.2", features = ["sqlite", "r2d2"] }
+dotenv = "0.13.0"
+env_logger = "0.5.13"
+failure = "0.1.2"
+lazy_static = "1.1.0"
+regex = "1"
+serde = "1.0.76"
+serde_derive = "1.0.76"
+serde_json = "1.0.26"
+
+[[bin]]
+name = "receptus-cli"
+path = "src/bin/cli.rs"
+
+[[bin]]
+name = "receptus-server"
+path = "src/bin/server.rs"
