@@ -12,10 +12,13 @@ env_logger = "0.5.13"
 failure = "0.1.2"
 handlebars = "1.0.3"
 lazy_static = "1.1.0"
+log = "0.4.5"
 regex = "1"
 serde = "1.0.76"
 serde_derive = "1.0.76"
 serde_json = "1.0.26"
+url = "1.7.1"
+url_serde = "0.2.0"
 
 [[bin]]
 name = "receptus-cli"

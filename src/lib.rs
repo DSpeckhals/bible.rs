@@ -8,16 +8,21 @@ extern crate actix_web;
 #[macro_use]
 extern crate diesel;
 extern crate dotenv;
+extern crate env_logger;
 #[macro_use]
 extern crate failure;
 extern crate handlebars;
 #[macro_use]
 extern crate lazy_static;
+#[macro_use]
+extern crate log;
 extern crate regex;
 extern crate serde;
 extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
+extern crate url;
+extern crate url_serde;
 
 use std::env;
 
@@ -39,15 +44,21 @@ pub struct ServerState {
 pub enum ReceptusError {
     #[fail(display = "'{}' was not found.", book)]
     BookNotFound { book: String },
+
     #[fail(display = "There was a connection pool error.",)]
     ConnectionPoolError { root_cause: String },
-    #[fail(display = "'{}' is not a valid Bible reference.", reference)]
-    InvalidReference { reference: String },
+
     #[fail(
         display = "There was a database error. Root cause: {:?}.",
         root_cause
     )]
     DatabaseError { root_cause: Error },
+
+    #[fail(display = "'{}' is not a valid Bible reference.", reference)]
+    InvalidReference { reference: String },
+
+    #[fail(display = "There was an error rendering the HTML page.")]
+    TemplateError,
 }
 
 pub fn establish_connection() -> SqliteConnection {

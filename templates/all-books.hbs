@@ -1,0 +1,11 @@
+{{~ #*inline "page"}}
+<h1>{{@root.title}}</h1>
+<ul>
+    {{~ #each books as |book|}}
+    <li>
+        <a href="/bible/{{name}}">{{name}}</a>
+    </li>
+    {{~ /each}}
+</ul>
+{{~ /inline}}
+{{~> base ~}}

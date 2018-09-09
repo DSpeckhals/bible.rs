@@ -1,0 +1,68 @@
+body {
+    font-family: "Helvetica Neue", "Liberation Sans", Arial, FreeSans, sans-serif;
+}
+
+h1 {
+    color: rgb(68, 68, 68);
+    text-align: center;
+}
+
+a {
+    color: inherit;
+    /* text-decoration: none; */
+}
+
+.container {
+    max-width: 35rem;
+    margin: 2rem auto;
+}
+
+/* Bible Page */
+
+/* Book Page */
+.book {
+}
+
+.book ol > li {
+    display: inline-block;
+    list-style-type: none;
+    margin: .5rem;
+    width: 1rem;
+}
+
+/* Chapter Page */
+.container.chapter {
+}
+
+.chapter article {
+    clear: both;
+}
+
+.chapter article .previous {
+    display: inline-block;
+    width: 7rem;
+    text-align: left;
+}
+
+.chapter article .next {
+    display: inline-block;
+    width: 7rem;
+    text-align: right;
+}
+
+.chapter article h1 {
+    display: inline-block;
+    width: 20rem;
+    color: rgb(68, 68, 68);
+    text-align: center;
+}
+
+.chapter article p {
+    color: rgb(97, 97, 97);
+    font-size: 1.1rem;
+    line-height: 1.5rem;
+}
+
+.chapter article p > a {
+    font-size: .75rem;
+}

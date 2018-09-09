@@ -49,6 +49,7 @@ impl Queryable<Text, Sqlite> for Testament {
 pub struct Book {
     pub id: i32,
     pub name: String,
+    pub chapter_count: i32,
     pub testament: Testament,
 }
 

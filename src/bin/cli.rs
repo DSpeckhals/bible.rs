@@ -6,7 +6,7 @@ use std::io::{self, Write};
 
 use receptus::establish_connection;
 use receptus::reference::Reference;
-use receptus::sword_drill::drill;
+use receptus::sword_drill::verses;
 
 fn main() -> io::Result<()> {
     let matches = clap_app!(receptuscli =>
@@ -23,7 +23,7 @@ fn main() -> io::Result<()> {
         .unwrap_or("John 3:16")
         .parse()
         .expect("Invalid reference");
-    let result = drill(&reference, &conn);
+    let result = verses(&reference, &conn);
 
     match result {
         Ok((book, verses)) => {

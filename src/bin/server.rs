@@ -8,7 +8,11 @@ extern crate receptus;
 use std::env;
 use std::error::Error;
 
-use actix_web::{middleware, server, App};
+use actix_web::{
+    fs,
+    http::{Method, NormalizePath},
+    middleware, server, App,
+};
 use diesel::r2d2;
 use dotenv::dotenv;
 use handlebars::Handlebars;
@@ -19,17 +23,26 @@ use receptus::SqliteConnectionManager;
 
 fn register_templates() -> Result<Handlebars, Box<Error>> {
     let mut tpl = Handlebars::new();
-    tpl.register_template_file("base", "./templates/base.hbs")?;
-    tpl.register_template_file("view", "./templates/view.hbs")?;
-    tpl.register_template_file("not_found", "./templates/not-found.hbs")?;
+    tpl.set_strict_mode(true);
+    tpl.register_templates_directory(".hbs", "./templates/")?;
+
     Ok(tpl)
+}
+
+#[derive(Default)]
+struct StaticFileConfig;
+
+impl fs::StaticFileConfig for StaticFileConfig {
+    fn is_use_etag() -> bool {
+        true
+    }
 }
 
 fn main() -> Result<(), Box<Error>> {
     dotenv().ok();
 
     // Set up logging
-    env::set_var("RUST_LOG", "actix_web=info");
+    env::set_var("RUST_LOG", "info");
     env_logger::init();
 
     server::new(move || {
@@ -45,8 +58,20 @@ fn main() -> Result<(), Box<Error>> {
 
         // Wire up the application
         App::with_state(ServerState { db, template })
-            .resource("/api/{reference}.json", |r| r.get().with(api::index))
-            .resource("/bible/{reference:.+}", |r| r.get().with(view::index))
+            .handler(
+                "/static",
+                fs::StaticFiles::with_config("./static", StaticFileConfig).unwrap(),
+            ).resource("bible", |r| {
+                r.name("bible");
+                r.get().with(view::all_books)
+            }).resource("bible/{book}", |r| {
+                r.name("book");
+                r.get().f(view::book)
+            }).resource("bible/{reference:.+}", |r| {
+                r.name("reference");
+                r.get().f(view::index)
+            }).resource("api/{reference}.json", |r| r.get().f(api::index))
+            .default_resource(|r| r.method(Method::GET).h(NormalizePath::default()))
             .middleware(middleware::Logger::default())
     }).bind("127.0.0.1:8080")
     .unwrap()

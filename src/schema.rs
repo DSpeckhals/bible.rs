@@ -10,6 +10,7 @@ table! {
     books (id) {
         id -> Integer,
         name -> Text,
+        chapter_count -> Integer,
         testament -> Text,
     }
 }
@@ -24,6 +25,7 @@ table! {
     }
 }
 
+joinable!(book_abbreviations -> books (book_id));
 joinable!(verses -> books (book));
 
 allow_tables_to_appear_in_same_query!(

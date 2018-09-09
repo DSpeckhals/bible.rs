@@ -1,0 +1,26 @@
+{{~ #*inline "page"}}
+<div class="container book">
+    <h1>{{book.name}}</h1>
+    <nav>
+        <ol>
+            {{~ #each chapters as |c|}}
+            <li>
+                <a href="{{lookup @root.data.links.chapters @index}}">{{c}}</a>
+            </li>
+            {{~ /each}}
+        </ol>
+    </nav>
+</div>
+Books: <a href="{{links.books.url}}">{{links.books.label}}</a><br>
+
+{{#if links.previous}}
+Previous: <a href="{{links.previous.url}}">{{links.previous.label}}</a><br>
+{{/if}}
+
+{{#if links.next}}
+Next: <a href="{{links.next.url}}">{{links.next.label}}</a><br>
+{{/if}}
+
+Current: <a href="{{links.current.url}}">{{links.current.label}}</a>
+{{~ /inline}}
+{{~> base}}

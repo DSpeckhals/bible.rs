@@ -6,7 +6,7 @@ use regex::{Match, Regex};
 
 use ReceptusError;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Reference {
     pub book: String,
     pub chapter: Option<i32>,
@@ -143,7 +143,7 @@ mod tests {
                 Reference {
                     book: book.to_string(),
                     chapter: *chapter,
-                    verses: verses.clone()
+                    verses: verses.to_owned()
                 }
             );
         });
@@ -167,7 +167,7 @@ mod tests {
                 Reference {
                     book: book.to_string(),
                     chapter: *chapter,
-                    verses: verses.clone()
+                    verses: verses.to_owned()
                 }.to_string(),
                 expected.to_string()
             );
