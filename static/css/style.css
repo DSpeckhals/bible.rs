@@ -12,49 +12,77 @@ a {
     /* text-decoration: none; */
 }
 
+ol {
+    margin: 0;
+    padding: 0;
+    text-align: center;
+}
+
+ol > li {
+    display: inline-block;
+    list-style-type: none;
+    margin: .5rem;
+    border: 1px solid rgb(97, 97, 97);
+    text-align: center;
+}
+
+ol > li > a {
+    color: rgb(97, 97, 97);;
+    font-size: 1.25rem;
+    display: block;
+    line-height: 4rem;
+    text-decoration: none;
+}
+
 .container {
     max-width: 35rem;
     margin: 2rem auto;
 }
 
-/* Bible Page */
-
-/* Book Page */
-.book {
+nav.top-nav, nav.bottom-nav {
+    text-align: center;
 }
 
-.book ol > li {
+.heading .previous {
     display: inline-block;
-    list-style-type: none;
-    margin: .5rem;
-    width: 1rem;
-}
-
-/* Chapter Page */
-.container.chapter {
-}
-
-.chapter article {
-    clear: both;
-}
-
-.chapter article .previous {
-    display: inline-block;
-    width: 7rem;
+    width: 15%;
     text-align: left;
 }
 
-.chapter article .next {
+.heading h1 {
     display: inline-block;
-    width: 7rem;
+    width: 67%;
+    text-align: center;
+}
+
+.heading .next {
+    display: inline-block;
+    width: 15%;
     text-align: right;
 }
 
-.chapter article h1 {
-    display: inline-block;
-    width: 20rem;
-    color: rgb(68, 68, 68);
-    text-align: center;
+/* Bible Page */
+
+.all-books ol > li {
+    width: 28%;
+    height: 4rem;
+}
+
+.all-books ol > li > a {
+    font-size: 1rem;
+}
+
+/* Book Page */
+
+.book ol > li {
+    width: 4rem;
+    height: 4rem;
+}
+
+/* Chapter Page */
+
+.chapter article {
+    clear: both;
 }
 
 .chapter article p {

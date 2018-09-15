@@ -1,5 +1,6 @@
 extern crate actix_web;
 extern crate diesel;
+extern crate diesel_migrations;
 extern crate dotenv;
 extern crate env_logger;
 extern crate handlebars;
@@ -14,10 +15,12 @@ use actix_web::{
     middleware, server, App,
 };
 use diesel::r2d2;
+use diesel_migrations::run_pending_migrations;
 use dotenv::dotenv;
 use handlebars::Handlebars;
 
 use receptus::controllers::{api, view};
+use receptus::establish_connection;
 use receptus::ServerState;
 use receptus::SqliteConnectionManager;
 
@@ -44,6 +47,9 @@ fn main() -> Result<(), Box<Error>> {
     // Set up logging
     env::set_var("RUST_LOG", "info");
     env_logger::init();
+
+    // Run DB migrations for a new SQLite database
+    run_pending_migrations(&establish_connection()).expect("Error running migrations");
 
     server::new(move || {
         // Create handlebars registry
@@ -73,7 +79,7 @@ fn main() -> Result<(), Box<Error>> {
             }).resource("api/{reference}.json", |r| r.get().f(api::index))
             .default_resource(|r| r.method(Method::GET).h(NormalizePath::default()))
             .middleware(middleware::Logger::default())
-    }).bind("127.0.0.1:8080")
+    }).bind("0.0.0.0:8080")
     .unwrap()
     .run();
 

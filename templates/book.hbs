@@ -1,6 +1,18 @@
 {{~ #*inline "page"}}
 <div class="container book">
-    <h1>{{book.name}}</h1>
+    <div class="heading">
+        <nav class="previous">
+            {{~ #if links.previous}}
+            <a href="{{links.previous.url}}" title="{{links.previous.label}}">Previous</a>
+            {{~ /if}}
+        </nav>
+        <h1>{{book.name}}</h1>
+        <nav class="next">
+            {{~ #if links.next}}
+            <a href="{{links.next.url}}" title="{{links.next.label}}">Next</a>
+            {{~ /if}}
+        </nav>
+    </div>
     <nav>
         <ol>
             {{~ #each chapters as |c|}}
@@ -10,17 +22,9 @@
             {{~ /each}}
         </ol>
     </nav>
+    <nav class="bottom-nav">
+        <a href="{{links.books.url}}">{{links.books.label}}</a>
+    </nav>
 </div>
-Books: <a href="{{links.books.url}}">{{links.books.label}}</a><br>
-
-{{#if links.previous}}
-Previous: <a href="{{links.previous.url}}">{{links.previous.label}}</a><br>
-{{/if}}
-
-{{#if links.next}}
-Next: <a href="{{links.next.url}}">{{links.next.label}}</a><br>
-{{/if}}
-
-Current: <a href="{{links.current.url}}">{{links.current.label}}</a>
 {{~ /inline}}
 {{~> base}}

@@ -133,7 +133,7 @@ pub struct VersesLinks {
 
 impl VersesLinks {
     pub fn new(book: &Book, reference: &Reference, req: &HttpRequest) -> Self {
-        let bible_root = Link::new(req.url_for_static("bible").unwrap(), "Bible".to_string());
+        let bible_root = Link::new(req.url_for_static("bible").unwrap(), "Books".to_string());
         let book_link = Link::new(
             req.url_for("book", &[&book.name]).unwrap(),
             book.name.to_string(),

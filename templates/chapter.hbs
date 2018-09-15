@@ -1,18 +1,21 @@
 {{~ #*inline "page"}}
 <div class="container chapter">
+    <nav class="top-nav">
+        <a href="{{links.books.url}}">{{links.books.label}}</a>
+    </nav>
     <article>
         <div class="heading">
-            <div class="previous">
+            <nav class="previous">
                 {{~ #if links.previous}}
                 <a href="{{links.previous.url}}" title="{{links.previous.label}}">Previous</a>
                 {{~ /if}}
-            </div>
+            </nav>
             <h1>{{reference_string}}</h1>
-            <div class="next">
+            <nav class="next">
                 {{~ #if links.next}}
                 <a href="{{links.next.url}}" title="{{links.next.label}}">Next</a>
                 {{~ /if}}
-            </div>
+            </nav>
         </div>
         {{~ #each verses as |v|}}
         <p id="v{{v.verse}}">
@@ -23,10 +26,9 @@
         </p>
         {{~ /each}}
     </article>
+    <nav class="bottom-nav">
+        <a href="{{links.book.url}}">{{links.book.label}}</a>
+    </nav>
 </div>
-Books: <a href="{{links.books.url}}">{{links.books.label}}</a><br>
-Book: <a href="{{links.book.url}}">{{links.book.label}}</a><br>
-Chapter: <a href="{{links.chapter.url}}">{{links.chapter.label}}</a><br>
-Current: <a href="{{links.current.url}}">{{links.current.label}}</a>
 {{~ /inline}}
 {{~> base ~}}

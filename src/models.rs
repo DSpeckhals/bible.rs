@@ -4,6 +4,7 @@ use diesel::row::Row;
 use diesel::sql_types::Text;
 use diesel::sqlite::Sqlite;
 
+
 #[derive(Debug, Queryable, Serialize)]
 pub struct Verse {
     pub id: i32,
