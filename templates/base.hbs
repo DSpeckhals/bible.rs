@@ -10,11 +10,16 @@
 </head>
 
 <body>
+    <form id="search-form" action="/view/search">
+        <input type="search" id="q" name="q" autocomplete="off" placeholder="Click or press 'S' to search...">
+    </form>
     <main>
     {{~ #with data}}
     {{~> page ~}}
     {{~ /with}}
     </main>
+    <script src="/static/js/autocomplete.min.js"></script>
+    <script src="/static/js/main.js"></script>
 </body>
 
 </html>

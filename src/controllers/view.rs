@@ -2,7 +2,7 @@ use actix_web::{error, FromRequest, HttpRequest, HttpResponse, Path, Result, Sta
 use handlebars::Handlebars;
 use serde::Serialize;
 
-use controllers::{AllBooksPayload, BookPayload, ErrorPayload, VersesPayload};
+use controllers::{AllBooksPayload, BookPayload, ErrorPayload, SearchResultPayload, VersesPayload};
 use reference::Reference;
 use sword_drill;
 use {ReceptusError, ServerState};
@@ -74,8 +74,50 @@ impl error::ResponseError for HtmlReceptusError {
 
 macro_rules! title_format {
     () => {
-        "The Holy Bible | {}"
+        "Bible.rs | {}"
     };
+}
+
+pub fn all_books((state,): (State<ServerState>,)) -> Result<HttpResponse, HtmlReceptusError> {
+    let conn = state
+        .db
+        .get()
+        .map_err(|e| ReceptusError::ConnectionPoolError {
+            root_cause: e.to_string(),
+        })?;
+
+    let books = sword_drill::all_books(&*conn)?;
+    let title = format!(title_format!(), "King James Version");
+    let body = TemplatePayload::new(title, AllBooksPayload { books })
+        .html("all-books", &state.template)
+        .map_err(|e| {
+            error!("{:?}", e);
+            ReceptusError::TemplateError
+        })?;
+
+    Ok(HttpResponse::Ok().content_type("text/html").body(body))
+}
+
+pub fn book(req: &HttpRequest<ServerState>) -> Result<HttpResponse, HtmlReceptusError> {
+    let info = Path::<(String,)>::extract(req).unwrap();
+    let conn = req
+        .state()
+        .db
+        .get()
+        .map_err(|e| ReceptusError::ConnectionPoolError {
+            root_cause: e.to_string(),
+        })?;
+
+    let result = sword_drill::book(&info.0, &*conn)?;
+    let title = format!(title_format!(), result.0.name);
+    let body = TemplatePayload::new(title, BookPayload::new(result, &req.drop_state()))
+        .html("book", &req.state().template)
+        .map_err(|e| {
+            error!("{:?}", e);
+            ReceptusError::TemplateError
+        })?;
+
+    Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
 
 pub fn index(req: &HttpRequest<ServerState>) -> Result<HttpResponse, HtmlReceptusError> {
@@ -114,8 +156,7 @@ pub fn index(req: &HttpRequest<ServerState>) -> Result<HttpResponse, HtmlReceptu
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
 
-pub fn book(req: &HttpRequest<ServerState>) -> Result<HttpResponse, HtmlReceptusError> {
-    let info = Path::<(String,)>::extract(req).unwrap();
+pub fn search(req: &HttpRequest<ServerState>) -> Result<HttpResponse, HtmlReceptusError> {
     let conn = req
         .state()
         .db
@@ -123,35 +164,17 @@ pub fn book(req: &HttpRequest<ServerState>) -> Result<HttpResponse, HtmlReceptus
         .map_err(|e| ReceptusError::ConnectionPoolError {
             root_cause: e.to_string(),
         })?;
-
-    let result = sword_drill::book(&info.0, &*conn)?;
-    let title = format!(title_format!(), result.0.name);
-    let body = TemplatePayload::new(title, BookPayload::new(result, &req.drop_state()))
-        .html("book", &req.state().template)
-        .map_err(|e| {
-            error!("{:?}", e);
-            ReceptusError::TemplateError
-        })?;
-
-    Ok(HttpResponse::Ok().content_type("text/html").body(body))
-}
-
-pub fn all_books((state,): (State<ServerState>,)) -> Result<HttpResponse, HtmlReceptusError> {
-    let conn = state
-        .db
-        .get()
-        .map_err(|e| ReceptusError::ConnectionPoolError {
-            root_cause: e.to_string(),
-        })?;
-
-    let books = sword_drill::all_books(&*conn)?;
-    let title = format!(title_format!(), "King James Version");
-    let body = TemplatePayload::new(title, AllBooksPayload { books })
-        .html("all-books", &state.template)
-        .map_err(|e| {
-            error!("{:?}", e);
-            ReceptusError::TemplateError
-        })?;
-
+    let params = req.query();
+    let q = params.get("q").ok_or(ReceptusError::TemplateError)?;
+    let title = format!(title_format!(), format!("Results for '{}'", q));
+    let results = sword_drill::search(q, &conn)?;
+    let body = TemplatePayload::new(
+        title,
+        SearchResultPayload::from_verses_fts(results, &req.drop_state()),
+    ).html("search-results", &req.state().template)
+    .map_err(|e| {
+        error!("{:?}", e);
+        ReceptusError::TemplateError
+    })?;
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }

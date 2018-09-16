@@ -94,3 +94,72 @@ nav.top-nav, nav.bottom-nav {
 .chapter article p > a {
     font-size: .75rem;
 }
+
+.chapter article p:target {
+    padding: .25rem;
+    background-color: rgb(221, 221, 221);
+    border-radius: 1px;
+}
+
+/* Search */
+
+.search-results ol > li {
+    padding: .5rem;
+    text-align: left;
+    width: 100%;
+}
+
+.search-results ol > li > a {
+    font-size: 1rem;
+    color: rgb(68, 68, 68);
+    line-height: 1;
+}
+
+.search-results em {
+    text-decoration: underline;
+}
+
+/* Autocomplete */
+
+.algolia-autocomplete {
+    width: 100%;
+}
+#q, .algolia-autocomplete .aa-input {
+    font-size: 1.5rem;
+    width: 100%;
+    box-sizing: border-box;
+    outline: none;
+    border: none;
+    border-radius: 1px;
+    margin-top: 5px;
+    padding: 10px 16px;
+    transition: box-shadow 300ms ease-in-out;
+    box-shadow: 0 0 0 1px rgb(221, 221, 221), 0 0 0 2px transparent;
+    color: rgb(97, 97, 97);
+    background-color: rgb(255, 255, 255);
+}
+
+.algolia-autocomplete .aa-input:focus {
+    border-radius: 2px;
+    box-shadow: 0 0 8px rgb(7, 141, 216);
+}
+
+.algolia-autocomplete .aa-dropdown-menu {
+    width: 100%;
+    background-color: rgb(255, 255, 255);
+    border: 1px solid rgb(97, 97, 97);
+}
+
+.algolia-autocomplete .aa-dropdown-menu .aa-suggestion {
+    cursor: pointer;
+    padding: .25rem;
+}
+
+.algolia-autocomplete .aa-dropdown-menu .aa-suggestion.aa-cursor {
+    background-color: rgb(178, 215, 255);
+}
+
+.algolia-autocomplete .aa-dropdown-menu .aa-suggestion em {
+    font-weight: bold;
+    font-style: normal;
+}

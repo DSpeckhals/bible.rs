@@ -2,9 +2,9 @@ use std::convert::From;
 
 use actix_web::{error, FromRequest, HttpRequest, HttpResponse, Json, Path, Result};
 
-use controllers::{ErrorPayload, VersesPayload};
+use controllers::{ErrorPayload, SearchResultPayload, VersesPayload};
 use reference::Reference;
-use sword_drill::verses;
+use sword_drill;
 use {ReceptusError, ServerState};
 
 #[derive(Fail, Debug)]
@@ -49,6 +49,47 @@ pub fn index(req: &HttpRequest<ServerState>) -> Result<Json<VersesPayload>, Json
             root_cause: e.to_string(),
         })?;
     let reference: Reference = info.0.parse()?;
-    let payload = VersesPayload::new(verses(&reference, &*conn)?, reference, &req.drop_state());
+    let payload = VersesPayload::new(
+        sword_drill::verses(&reference, &*conn)?,
+        reference,
+        &req.drop_state(),
+    );
     Ok(Json(payload))
+}
+
+pub fn search(
+    req: &HttpRequest<ServerState>,
+) -> Result<Json<SearchResultPayload>, JsonReceptusError> {
+    let conn = req
+        .state()
+        .db
+        .get()
+        .map_err(|e| ReceptusError::ConnectionPoolError {
+            root_cause: e.to_string(),
+        })?;
+
+    req.query()
+        .get("q")
+        .map_or(Ok(Json(SearchResultPayload::empty())), |q| {
+            // Check if query can be parsed as a reference
+            if let Ok(r) = q.parse::<Reference>() {
+                match sword_drill::verses(&r, &conn) {
+                    Ok(results) => Ok(Json(SearchResultPayload::from_verses(
+                        results,
+                        &req.drop_state(),
+                    ))),
+                    Err(ReceptusError::BookNotFound { .. })
+                    | Err(ReceptusError::InvalidReference { .. }) => {
+                        Ok(Json(SearchResultPayload::empty()))
+                    }
+                    Err(e) => Err(JsonReceptusError::from(e)),
+                }
+            // Otherwise look for word matches
+            } else {
+                Ok(Json(SearchResultPayload::from_verses_fts(
+                    sword_drill::search(q, &conn)?,
+                    &req.drop_state(),
+                )))
+            }
+        })
 }

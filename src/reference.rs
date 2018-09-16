@@ -9,7 +9,7 @@ use ReceptusError;
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Reference {
     pub book: String,
-    pub chapter: Option<i32>,
+    pub chapter: i32,
     pub verses: Option<Range<i32>>,
 }
 
@@ -18,24 +18,18 @@ impl fmt::Display for Reference {
         match self {
             Reference {
                 book,
-                chapter: None,
-                verses: None,
-            } => write!(f, "{}", book),
-            Reference {
-                book,
-                chapter: Some(chapter),
+                chapter,
                 verses: None,
             } => write!(f, "{} {}", book, chapter),
             Reference {
                 book,
-                chapter: Some(chapter),
+                chapter,
                 verses: Some(verses),
             } => if verses.start == verses.end {
                 write!(f, "{} {}:{}", book, chapter, verses.start)
             } else {
                 write!(f, "{} {}:{}-{}", book, chapter, verses.start, verses.end)
             },
-            _ => unimplemented!(),
         }
     }
 }
@@ -48,22 +42,12 @@ impl FromStr for Reference {
             static ref REF_RE: Regex =
                 Regex::new(r"^(\w+(?: [a-zA-Z]+(?: [a-zA-Z]+)?)?)(?:\.| )((?:[0-9\-:\.])+)$")
                     .unwrap();
-            static ref BOOK_ONLY_RE: Regex = Regex::new(r"^(.*)$").unwrap();
             static ref CV_RE: Regex =
-                Regex::new(r"^(\d{1,3})(?:[:\.](\d{1,3})(?:-(\d{1,3}))?)?$").unwrap();
+                Regex::new(r"^(\d{1,3})(?:[:\.](\d{1,3})?(?:-(\d{1,3}))?)?$").unwrap();
         }
 
-        let ref_caps = REF_RE
-            .captures(s)
-            .or_else(|| BOOK_ONLY_RE.captures(s))
-            .ok_or_else(|| invalid_reference(s))?;
+        let ref_caps = REF_RE.captures(s).ok_or_else(|| invalid_reference(s))?;
         match (ref_caps.get(1), ref_caps.get(2)) {
-            // Only the book
-            (Some(book), None) => Ok(Reference {
-                book: book.as_str().to_string(),
-                chapter: None,
-                verses: None,
-            }),
             // Book and chapter/verse reference
             (Some(book), Some(cv)) => {
                 let cv_caps = CV_RE
@@ -75,7 +59,7 @@ impl FromStr for Reference {
                     // Chapter only
                     (Some(chapter), None, None) => Ok(Reference {
                         book,
-                        chapter: Some(parse_num_match(chapter)?),
+                        chapter: parse_num_match(chapter)?,
                         verses: None,
                     }),
                     // Chapter and one verse
@@ -83,7 +67,7 @@ impl FromStr for Reference {
                         let verse = parse_num_match(verse)?;
                         Ok(Reference {
                             book,
-                            chapter: Some(parse_num_match(chapter)?),
+                            chapter: parse_num_match(chapter)?,
                             verses: Some(verse..verse),
                         })
                     }
@@ -93,7 +77,7 @@ impl FromStr for Reference {
                         let verse_end = parse_num_match(verse_end)?;
                         Ok(Reference {
                             book,
-                            chapter: Some(parse_num_match(chapter)?),
+                            chapter: parse_num_match(chapter)?,
                             verses: Some(verse_start..verse_end),
                         })
                     }
@@ -126,16 +110,16 @@ mod tests {
     #[test]
     fn fmt() {
         vec![
-            ("Genesis", "Genesis", None, None),
-            ("Song of Solomon", "Song of Solomon", None, None),
-            ("Third John", "Third John", None, None),
-            ("Exodus 20", "Exodus", Some(20), None),
-            ("1cor 4", "1cor", Some(4), None),
-            ("John 1:1", "John", Some(1), Some(1..1)),
-            ("jhn.1.1", "jhn", Some(1), Some(1..1)),
-            ("I Timothy 3:16", "I Timothy", Some(3), Some(16..16)),
-            ("1 Timothy 3:16-18", "1 Timothy", Some(3), Some(16..18)),
-            ("1tim 3.16", "1tim", Some(3), Some(16..16)),
+            ("Genesis 50", "Genesis", 50, None),
+            ("Joel 2:", "Joel", 2, None),
+            ("Song of Solomon 1", "Song of Solomon", 1, None),
+            ("Exodus 20", "Exodus", 20, None),
+            ("1cor 4", "1cor", 4, None),
+            ("John 1:1", "John", 1, Some(1..1)),
+            ("jhn.1.1", "jhn", 1, Some(1..1)),
+            ("I Timothy 3:16", "I Timothy", 3, Some(16..16)),
+            ("1 Timothy 3:16-18", "1 Timothy", 3, Some(16..18)),
+            ("1tim 3.16", "1tim", 3, Some(16..16)),
         ].iter()
         .for_each(|(raw, book, chapter, verses)| {
             assert_eq!(
@@ -152,15 +136,15 @@ mod tests {
     #[test]
     fn from_str() {
         vec![
-            ("Genesis", "Genesis", None, None),
-            ("Song of Solomon", "Song of Solomon", None, None),
-            ("3 John", "3 John", None, None),
-            ("Exodus 20", "Exodus", Some(20), None),
-            ("1 Cor 4", "1 Cor", Some(4), None),
-            ("John 1:1", "John", Some(1), Some(1..1)),
-            ("I Timothy 3:16", "I Timothy", Some(3), Some(16..16)),
-            ("1 Timothy 3:16-18", "1 Timothy", Some(3), Some(16..18)),
-            ("1Tim 3:16", "1Tim", Some(3), Some(16..16)),
+            ("Genesis 50", "Genesis", 50, None),
+            ("Song of Solomon 1", "Song of Solomon", 1, None),
+            ("3 John 1", "3 John", 1, None),
+            ("Exodus 20", "Exodus", 20, None),
+            ("1 Cor 4", "1 Cor", 4, None),
+            ("John 1:1", "John", 1, Some(1..1)),
+            ("I Timothy 3:16", "I Timothy", 3, Some(16..16)),
+            ("1 Timothy 3:16-18", "1 Timothy", 3, Some(16..18)),
+            ("1Tim 3:16", "1Tim", 3, Some(16..16)),
         ].iter()
         .for_each(|(expected, book, chapter, verses)| {
             assert_eq!(

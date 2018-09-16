@@ -67,16 +67,18 @@ fn main() -> Result<(), Box<Error>> {
             .handler(
                 "/static",
                 fs::StaticFiles::with_config("./static", StaticFileConfig).unwrap(),
-            ).resource("bible", |r| {
+            ).resource("/", |r| {
                 r.name("bible");
                 r.get().with(view::all_books)
-            }).resource("bible/{book}", |r| {
+            }).resource("search", |r| r.get().f(view::search))
+            .resource("{book}", |r| {
                 r.name("book");
                 r.get().f(view::book)
-            }).resource("bible/{reference:.+}", |r| {
+            }).resource("{reference:.+\\d}", |r| {
                 r.name("reference");
                 r.get().f(view::index)
-            }).resource("api/{reference}.json", |r| r.get().f(api::index))
+            }).resource("api/search", |r| r.get().f(api::search))
+            .resource("api/{reference}.json", |r| r.get().f(api::index))
             .default_resource(|r| r.method(Method::GET).h(NormalizePath::default()))
             .middleware(middleware::Logger::default())
     }).bind("0.0.0.0:8080")

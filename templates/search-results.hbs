@@ -1,0 +1,15 @@
+{{~ #*inline "page"}}
+<div class="container search-results">
+    <h1>{{@root.title}}</h1>
+    <nav>
+        <ol>
+            {{~ #each matches as |match|}}
+            <li>
+                <a href="/{{match.link.url}}"><strong>{{match.link.label}}</strong> | {{{match.text}}}</a>
+            </li>
+            {{~ /each}}
+        </ol>
+    </nav>
+</div>
+{{~ /inline}}
+{{~> base ~}}

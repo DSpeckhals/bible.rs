@@ -1,10 +1,17 @@
 use diesel::prelude::*;
 use diesel::result::Error;
+use diesel::sql_types::{Integer, Text};
 use diesel::sqlite::Sqlite;
 
 use models::*;
 use reference::Reference;
 use ReceptusError;
+
+sql_function!(
+    /// Represents the [`highlight` function](https://sqlite.org/fts5.html#the_highlight_function)
+    /// from SQLite's FTS5 extension.
+    fn highlight(table_name: Text, column_index: Integer, prefix: Text, suffix: Text) -> Text;
+);
 
 pub fn verses<C>(reference: &Reference, conn: &C) -> Result<(Book, Vec<Verse>), ReceptusError>
 where
@@ -26,11 +33,10 @@ where
             e => ReceptusError::DatabaseError { root_cause: e },
         })?;
 
-    let mut query = v::table.filter(v::book.eq(book.id)).into_boxed();
-
-    if let Some(chapter) = reference.chapter {
-        query = query.filter(v::chapter.eq(chapter));
-    }
+    let mut query = v::table
+        .filter(v::book.eq(book.id))
+        .filter(v::chapter.eq(reference.chapter))
+        .into_boxed();
 
     if let Some(ref verses) = reference.verses {
         query = query.filter(v::verse.between(verses.start, verses.end));
@@ -75,5 +81,37 @@ where
     books
         .order_by(id)
         .load(conn)
+        .map_err(|e| ReceptusError::DatabaseError { root_cause: e })
+}
+
+const SEARCH_RESULT_LIMIT: i64 = 20;
+
+pub fn search<C>(query: &str, conn: &C) -> Result<Vec<(VerseFTS, Book)>, ReceptusError>
+where
+    C: Connection<Backend = Sqlite>,
+{
+    use schema::books;
+    use schema::verses_fts;
+
+    verses_fts::table
+        .inner_join(books::table.on(books::id.eq(verses_fts::book)))
+        .select((
+            (
+                verses_fts::book,
+                verses_fts::chapter,
+                verses_fts::verse,
+                highlight(verses_fts::text, 3, "<em>", "</em>"),
+                verses_fts::rank,
+            ),
+            (
+                books::id,
+                books::name,
+                books::chapter_count,
+                books::testament,
+            ),
+        )).filter(verses_fts::text.eq(format!("\"{}\"*", query)))
+        .order_by(verses_fts::rank)
+        .limit(SEARCH_RESULT_LIMIT)
+        .load::<(VerseFTS, Book)>(conn)
         .map_err(|e| ReceptusError::DatabaseError { root_cause: e })
 }

@@ -27,7 +27,10 @@
         {{~ /each}}
     </article>
     <nav class="bottom-nav">
-        <a href="{{links.book.url}}">{{links.book.label}}</a>
+        {{~ #if reference.verses}}
+        <p><a href="{{links.chapter.url}}">View Full Chapter</a></p>
+        {{~ /if}}
+        <p><a href="{{links.book.url}}">{{links.book.label}}</a></p>
     </nav>
 </div>
 {{~ /inline}}

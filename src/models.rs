@@ -1,9 +1,10 @@
+#![allow(proc_macro_derive_resolution_fallback)]
+
 use diesel::backend::Backend;
 use diesel::deserialize::{self, FromSql, FromSqlRow, Queryable};
 use diesel::row::Row;
 use diesel::sql_types::Text;
 use diesel::sqlite::Sqlite;
-
 
 #[derive(Debug, Queryable, Serialize)]
 pub struct Verse {
@@ -59,4 +60,13 @@ pub struct BookAbbreviation {
     pub id: i32,
     pub book_id: i32,
     pub abbreviation: String,
+}
+
+#[derive(Debug, Queryable, Serialize)]
+pub struct VerseFTS {
+    pub book: i32,
+    pub chapter: i32,
+    pub verse: i32,
+    pub words: String,
+    pub rank: f32,
 }

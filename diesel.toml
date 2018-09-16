@@ -2,4 +2,5 @@
 # see diesel.rs/guides/configuring-diesel-cli
 
 [print_schema]
-file = "src/schema.rs"
+file = "src/schema/auto.rs"
+filter = { except_tables = ["verses_fts", "verses_fts_config", "verses_fts_data", "verses_fts_docsize", "verses_fts_idx"] }

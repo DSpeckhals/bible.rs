@@ -3,11 +3,13 @@ use serde_json;
 use url::Url;
 use url_serde;
 
-use models::{Book, Verse};
+use models::{Book, Verse, VerseFTS};
 use reference::Reference;
 use ReceptusError;
 
-const BOOKS: [(&str, i32); 67] = [
+const NAME: &str = "Bible.rs";
+
+const BOOKS: [(&str, i32); 68] = [
     ("_", 0), // Dummy in order to just use the book id (1-indexed)
     ("Genesis", 50),
     ("Exodus", 40),
@@ -75,6 +77,7 @@ const BOOKS: [(&str, i32); 67] = [
     ("3 John", 1),
     ("Jude", 1),
     ("Revelation", 22),
+    ("_", 0), // Dummy to avoid having to do a range check for the "next" book of Revelation
 ];
 
 #[derive(Serialize, Debug)]
@@ -107,6 +110,18 @@ fn chapter_url(b: &str, c: i32, req: &HttpRequest) -> Link {
     )
 }
 
+fn verse_url(b: &str, c: i32, v: i32, req: &HttpRequest) -> Link {
+    let chapter_string = c.to_string();
+    let verse_string = v.to_string();
+    Link::new(
+        req.url_for(
+            "reference",
+            &[format!("{}/{}#v{}", b, chapter_string, verse_string)],
+        ).unwrap(),
+        format!("{} {}:{}", b, chapter_string, verse_string),
+    )
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct Link {
     label: String,
@@ -133,21 +148,20 @@ pub struct VersesLinks {
 
 impl VersesLinks {
     pub fn new(book: &Book, reference: &Reference, req: &HttpRequest) -> Self {
-        let bible_root = Link::new(req.url_for_static("bible").unwrap(), "Books".to_string());
+        let bible_root = Link::new(req.url_for_static("bible").unwrap(), NAME.to_string());
         let book_link = Link::new(
             req.url_for("book", &[&book.name]).unwrap(),
             book.name.to_string(),
         );
-        let (chapter_link, curr_link) = if let Some(c) = reference.chapter {
+        let (chapter_link, curr_link) = {
             (
-                Some(chapter_url(&book.name, c, req)),
-                chapter_url(&book.name, c, req),
+                Some(chapter_url(&book.name, reference.chapter, req)),
+                chapter_url(&book.name, reference.chapter, req),
             )
-        } else {
-            (None, book_link.clone())
         };
 
-        let (prev_link, next_link) = if let Some(c) = reference.chapter {
+        let (prev_link, next_link) = {
+            let c = reference.chapter;
             let prev = BOOKS[book.id as usize - 1];
             let curr = BOOKS[book.id as usize];
             let next = BOOKS[book.id as usize + 1];
@@ -197,8 +211,6 @@ impl VersesLinks {
                     Some(chapter_url(&book.name, c + 1, req)),
                 )
             }
-        } else {
-            (None, None)
         };
 
         Self {
@@ -261,7 +273,7 @@ pub struct BookLinks {
 impl BookLinks {
     pub fn new(book: &Book, chapters: &[i32], req: &HttpRequest) -> Self {
         Self {
-            books: Link::new(req.url_for_static("bible").unwrap(), "Books".to_string()),
+            books: Link::new(req.url_for_static("bible").unwrap(), NAME.to_string()),
             chapters: chapters
                 .iter()
                 .map(|c| chapter_url(&book.name, *c, req).url.into_string())
@@ -302,6 +314,46 @@ impl BookPayload {
 #[derive(Serialize)]
 pub struct AllBooksPayload {
     books: Vec<Book>,
+}
+
+#[derive(Serialize)]
+pub struct SearchResult {
+    link: Link,
+    text: String,
+}
+
+#[derive(Serialize)]
+pub struct SearchResultPayload {
+    matches: Vec<SearchResult>,
+}
+
+impl SearchResultPayload {
+    fn empty() -> Self {
+        Self { matches: vec![] }
+    }
+
+    fn from_verses_fts(from_db: Vec<(VerseFTS, Book)>, req: &HttpRequest) -> Self {
+        let matches = from_db.into_iter().map(|(v, b)| SearchResult {
+            link: verse_url(&b.name, v.chapter, v.verse, req),
+            text: v.words,
+        });
+
+        Self {
+            matches: matches.collect(),
+        }
+    }
+
+    fn from_verses(from_db: (Book, Vec<Verse>), req: &HttpRequest) -> Self {
+        let name = from_db.0.name;
+        let matches = from_db.1.into_iter().map(|v| SearchResult {
+            link: verse_url(&name, v.chapter, v.verse, req),
+            text: v.words,
+        });
+
+        Self {
+            matches: matches.collect(),
+        }
+    }
 }
 
 pub mod api;

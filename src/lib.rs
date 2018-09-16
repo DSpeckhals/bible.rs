@@ -1,7 +1,7 @@
 pub mod controllers;
-pub mod models;
+mod models;
 pub mod reference;
-pub mod schema;
+mod schema;
 pub mod sword_drill;
 
 extern crate actix_web;
