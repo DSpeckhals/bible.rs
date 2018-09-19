@@ -1,6 +1,9 @@
 {{~ #*inline "page"}}
 <div class="container search-results">
-    <h1>{{@root.title}}</h1>
+    <h1>
+        <img src="/static/img/bible.rs.svg" alt="BIBLE.RS" height="100" width="100" class="logo">
+        {{@root.title}}
+    </h1>
     <nav>
         <ol>
             {{~ #each matches as |match|}}

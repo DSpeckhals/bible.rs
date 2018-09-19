@@ -10,9 +10,11 @@
 </head>
 
 <body>
-    <form id="search-form" action="/view/search">
-        <input type="search" id="q" name="q" autocomplete="off" placeholder="Click or press 'S' to search...">
-    </form>
+    <header>
+        <form id="search-form" action="/view/search">
+            <input type="search" id="q" name="q" autocomplete="off" placeholder="Click or press 'S' to search...">
+        </form>
+    </header>
     <main>
     {{~ #with data}}
     {{~> page ~}}

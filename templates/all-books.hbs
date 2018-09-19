@@ -1,6 +1,9 @@
 {{~ #*inline "page"}}
 <div class="container all-books">
-    <h1>{{@root.title}}</h1>
+    <nav class="top-nav">
+        <img src="/static/img/bible.rs.svg" alt="BIBLE.RS" height="100" width="100" class="logo">
+    </nav>
+    <h1>King James Version</h1>
     <nav>
         <ol>
             {{~ #each books as |book|}}

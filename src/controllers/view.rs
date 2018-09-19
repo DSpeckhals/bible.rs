@@ -1,4 +1,6 @@
-use actix_web::{error, FromRequest, HttpRequest, HttpResponse, Path, Result, State};
+use std::path::PathBuf;
+
+use actix_web::{error, fs, FromRequest, HttpRequest, HttpResponse, Path, Result, State};
 use handlebars::Handlebars;
 use serde::Serialize;
 
@@ -118,6 +120,10 @@ pub fn book(req: &HttpRequest<ServerState>) -> Result<HttpResponse, HtmlReceptus
         })?;
 
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
+}
+
+pub fn favicon(_: &HttpRequest<ServerState>) -> Result<fs::NamedFile> {
+    Ok(fs::NamedFile::open("./static/img/favicon.ico")?)
 }
 
 pub fn index(req: &HttpRequest<ServerState>) -> Result<HttpResponse, HtmlReceptusError> {

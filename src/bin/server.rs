@@ -70,7 +70,8 @@ fn main() -> Result<(), Box<Error>> {
             ).resource("/", |r| {
                 r.name("bible");
                 r.get().with(view::all_books)
-            }).resource("search", |r| r.get().f(view::search))
+            }).resource("/favicon.ico", |r| r.get().f(view::favicon))
+            .resource("search", |r| r.get().f(view::search))
             .resource("{book}", |r| {
                 r.name("book");
                 r.get().f(view::book)

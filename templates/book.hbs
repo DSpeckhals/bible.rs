@@ -1,5 +1,10 @@
 {{~ #*inline "page"}}
 <div class="container book">
+    <nav class="top-nav">
+        <a href="{{links.books.url}}">
+            <img src="/static/img/bible.rs.svg" alt="BIBLE.RS" height="100" width="100" class="logo">
+        </a>
+    </nav>
     <div class="heading">
         <nav class="previous">
             {{~ #if links.previous}}
@@ -21,9 +26,6 @@
             </li>
             {{~ /each}}
         </ol>
-    </nav>
-    <nav class="bottom-nav">
-        <a href="{{links.books.url}}">{{links.books.label}}</a>
     </nav>
 </div>
 {{~ /inline}}
