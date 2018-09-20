@@ -1,15 +1,15 @@
 #[macro_use]
 extern crate clap;
-extern crate receptus;
+extern crate biblers;
 
 use std::io::{self, Write};
 
-use receptus::establish_connection;
-use receptus::reference::Reference;
-use receptus::sword_drill::verses;
+use biblers::establish_connection;
+use biblers::reference::Reference;
+use biblers::sword_drill::verses;
 
 fn main() -> io::Result<()> {
-    let matches = clap_app!(receptuscli =>
+    let matches = clap_app!(biblerscli =>
         (version: "0.1")
         (author: "Dustin Speckhals <dustin1114@gmail.com>")
         (about: "CLI for looking up Bible verses")

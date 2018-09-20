@@ -1,0 +1,80 @@
+body {
+    margin: .5rem;
+    font-family: "Helvetica Neue", "Liberation Sans", Arial, FreeSans, sans-serif;
+}
+
+h1 {
+    font-size: 2rem;
+    color: $dark-grey;
+    text-align: center;
+    margin: 1rem 0;
+}
+
+p {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+a {
+    color: inherit;
+}
+
+ol {
+    margin: 0;
+    padding: 0;
+    text-align: center;
+    > li {
+        display: inline-block;
+        list-style-type: none;
+        margin: .5rem;
+        border: 1px solid $mid-grey;
+        text-align: center;
+        > a {
+            color: $mid-grey;
+            font-size: 1.25rem;
+            display: block;
+            line-height: 4rem;
+            text-decoration: none;
+            &:hover {
+                background: $light-grey;
+            }
+            &:active {
+                background: $mid-grey;
+                color: rgb(255, 255, 255);
+            }
+        }
+    }
+}
+
+.container {
+    max-width: 35rem;
+    margin: 2rem auto;
+}
+
+nav {
+    &.top-nav, &.bottom-nav {
+        text-align: center;
+    }
+}
+
+.heading {
+    .previous {
+        display: inline-block;
+        width: 15%;
+        text-align: left;
+    }
+    h1 {
+        display: inline-block;
+        width: 67%;
+        text-align: center;
+    }
+    .next {
+        display: inline-block;
+        width: 15%;
+        text-align: right;
+    }
+}
+
+img.logo {
+    vertical-align: middle;
+}

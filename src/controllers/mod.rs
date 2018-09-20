@@ -5,7 +5,7 @@ use url_serde;
 
 use models::{Book, Verse, VerseFTS};
 use reference::Reference;
-use ReceptusError;
+use BiblersError;
 
 const NAME: &str = "Bible.rs";
 
@@ -86,7 +86,7 @@ struct ErrorPayload {
 }
 
 impl ErrorPayload {
-    pub fn new(e: &ReceptusError) -> Self {
+    pub fn new(e: &BiblersError) -> Self {
         Self {
             message: e.to_string(),
         }

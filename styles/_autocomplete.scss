@@ -1,0 +1,55 @@
+.algolia-autocomplete {
+    width: 100%;
+}
+
+#q {
+    font-size: 1.5rem;
+    width: 100%;
+    box-sizing: border-box;
+    outline: none;
+    border: none;
+    border-radius: 1px;
+    margin-top: 5px;
+    padding: 10px 16px;
+    transition: box-shadow 300ms ease-in-out;
+    box-shadow: 0 0 0 1px $light-grey, 0 0 0 2px transparent;
+    color: $mid-grey;
+    background-color: rgb(255, 255, 255);
+}
+
+.algolia-autocomplete {
+    .aa-input {
+        font-size: 1.5rem;
+        width: 100%;
+        box-sizing: border-box;
+        outline: none;
+        border: none;
+        border-radius: 1px;
+        margin-top: 5px;
+        padding: 10px 16px;
+        transition: box-shadow 300ms ease-in-out;
+        box-shadow: 0 0 0 1px $light-grey, 0 0 0 2px transparent;
+        color: $mid-grey;
+        background-color: rgb(255, 255, 255);
+        &:focus {
+            border-radius: 2px;
+            box-shadow: 0 0 8px $input-focus;
+        }
+    }
+    .aa-dropdown-menu {
+        width: 100%;
+        background-color: rgb(255, 255, 255);
+        border: 1px solid $mid-grey;
+        .aa-suggestion {
+            cursor: pointer;
+            padding: .25rem;
+            &.aa-cursor {
+                background-color: $highlight;
+            }
+            em {
+                font-weight: bold;
+                font-style: normal;
+            }
+        }
+    }
+}

@@ -1,0 +1,15 @@
+.search-results {
+    ol > li {
+        padding: .5rem;
+        text-align: left;
+        width: 100%;
+        > a {
+            font-size: 1rem;
+            color: $dark-grey;
+            line-height: 1;
+        }
+    }
+    em {
+        text-decoration: underline;
+    }
+}

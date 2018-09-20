@@ -5,47 +5,47 @@ use actix_web::{error, FromRequest, HttpRequest, HttpResponse, Json, Path, Resul
 use controllers::{ErrorPayload, SearchResultPayload, VersesPayload};
 use reference::Reference;
 use sword_drill;
-use {ReceptusError, ServerState};
+use {BiblersError, ServerState};
 
 #[derive(Fail, Debug)]
 #[fail(display = "Json Error")]
-pub struct JsonReceptusError(ReceptusError);
+pub struct JsonBiblersError(BiblersError);
 
-impl From<ReceptusError> for JsonReceptusError {
-    fn from(f: ReceptusError) -> Self {
-        JsonReceptusError(f)
+impl From<BiblersError> for JsonBiblersError {
+    fn from(f: BiblersError) -> Self {
+        JsonBiblersError(f)
     }
 }
 
-impl error::ResponseError for JsonReceptusError {
+impl error::ResponseError for JsonBiblersError {
     fn error_response(&self) -> HttpResponse {
         match self.0 {
-            ref e @ ReceptusError::BookNotFound { .. } => {
+            ref e @ BiblersError::BookNotFound { .. } => {
                 HttpResponse::NotFound().body(ErrorPayload::new(e).json())
             }
-            ref e @ ReceptusError::ConnectionPoolError { .. } => {
+            ref e @ BiblersError::ConnectionPoolError { .. } => {
                 HttpResponse::InternalServerError().body(ErrorPayload::new(e).json())
             }
-            ref e @ ReceptusError::DatabaseError { .. } => {
+            ref e @ BiblersError::DatabaseError { .. } => {
                 HttpResponse::InternalServerError().body(ErrorPayload::new(e).json())
             }
-            ref e @ ReceptusError::InvalidReference { .. } => {
+            ref e @ BiblersError::InvalidReference { .. } => {
                 HttpResponse::BadRequest().body(ErrorPayload::new(e).json())
             }
-            ref e @ ReceptusError::TemplateError => {
+            ref e @ BiblersError::TemplateError => {
                 HttpResponse::InternalServerError().body(ErrorPayload::new(e).json())
             }
         }
     }
 }
 
-pub fn index(req: &HttpRequest<ServerState>) -> Result<Json<VersesPayload>, JsonReceptusError> {
+pub fn index(req: &HttpRequest<ServerState>) -> Result<Json<VersesPayload>, JsonBiblersError> {
     let info = Path::<(String,)>::extract(req).unwrap();
     let conn = req
         .state()
         .db
         .get()
-        .map_err(|e| ReceptusError::ConnectionPoolError {
+        .map_err(|e| BiblersError::ConnectionPoolError {
             root_cause: e.to_string(),
         })?;
     let reference: Reference = info.0.parse()?;
@@ -59,12 +59,12 @@ pub fn index(req: &HttpRequest<ServerState>) -> Result<Json<VersesPayload>, Json
 
 pub fn search(
     req: &HttpRequest<ServerState>,
-) -> Result<Json<SearchResultPayload>, JsonReceptusError> {
+) -> Result<Json<SearchResultPayload>, JsonBiblersError> {
     let conn = req
         .state()
         .db
         .get()
-        .map_err(|e| ReceptusError::ConnectionPoolError {
+        .map_err(|e| BiblersError::ConnectionPoolError {
             root_cause: e.to_string(),
         })?;
 
@@ -78,11 +78,11 @@ pub fn search(
                         results,
                         &req.drop_state(),
                     ))),
-                    Err(ReceptusError::BookNotFound { .. })
-                    | Err(ReceptusError::InvalidReference { .. }) => {
+                    Err(BiblersError::BookNotFound { .. })
+                    | Err(BiblersError::InvalidReference { .. }) => {
                         Ok(Json(SearchResultPayload::empty()))
                     }
-                    Err(e) => Err(JsonReceptusError::from(e)),
+                    Err(e) => Err(JsonBiblersError::from(e)),
                 }
             // Otherwise look for word matches
             } else {

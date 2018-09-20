@@ -41,7 +41,7 @@ pub struct ServerState {
 }
 
 #[derive(Fail, Debug)]
-pub enum ReceptusError {
+pub enum BiblersError {
     #[fail(display = "'{}' was not found.", book)]
     BookNotFound { book: String },
 

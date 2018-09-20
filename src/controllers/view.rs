@@ -5,7 +5,7 @@ use serde::Serialize;
 use controllers::{AllBooksPayload, BookPayload, ErrorPayload, SearchResultPayload, VersesPayload};
 use reference::Reference;
 use sword_drill;
-use {ReceptusError, ServerState};
+use {BiblersError, ServerState};
 
 lazy_static! {
     static ref ERR_TPL: Handlebars = {
@@ -38,34 +38,34 @@ impl<T: Serialize> TemplatePayload<T> {
 
 #[derive(Fail, Debug)]
 #[fail(display = "HTML Error")]
-pub struct HtmlReceptusError(ReceptusError);
+pub struct HtmlBiblersError(BiblersError);
 
-impl From<ReceptusError> for HtmlReceptusError {
-    fn from(f: ReceptusError) -> Self {
-        HtmlReceptusError(f)
+impl From<BiblersError> for HtmlBiblersError {
+    fn from(f: BiblersError) -> Self {
+        HtmlBiblersError(f)
     }
 }
 
-impl error::ResponseError for HtmlReceptusError {
+impl error::ResponseError for HtmlBiblersError {
     fn error_response(&self) -> HttpResponse {
         let body = &TemplatePayload::new("Error".to_string(), ErrorPayload::new(&self.0))
             .html("error", &ERR_TPL)
             .unwrap();
 
         match self.0 {
-            ReceptusError::BookNotFound { .. } => HttpResponse::NotFound()
+            BiblersError::BookNotFound { .. } => HttpResponse::NotFound()
                 .content_type("text/html")
                 .body(body),
-            ReceptusError::ConnectionPoolError { .. } => HttpResponse::InternalServerError()
+            BiblersError::ConnectionPoolError { .. } => HttpResponse::InternalServerError()
                 .content_type("text/html")
                 .body(body),
-            ReceptusError::DatabaseError { .. } => HttpResponse::InternalServerError()
+            BiblersError::DatabaseError { .. } => HttpResponse::InternalServerError()
                 .content_type("text/html")
                 .body(body),
-            ReceptusError::InvalidReference { .. } => HttpResponse::BadRequest()
+            BiblersError::InvalidReference { .. } => HttpResponse::BadRequest()
                 .content_type("text/html")
                 .body(body),
-            ReceptusError::TemplateError => HttpResponse::InternalServerError()
+            BiblersError::TemplateError => HttpResponse::InternalServerError()
                 .content_type("text/html")
                 .body(body),
         }
@@ -78,11 +78,11 @@ macro_rules! title_format {
     };
 }
 
-pub fn all_books((state,): (State<ServerState>,)) -> Result<HttpResponse, HtmlReceptusError> {
+pub fn all_books((state,): (State<ServerState>,)) -> Result<HttpResponse, HtmlBiblersError> {
     let conn = state
         .db
         .get()
-        .map_err(|e| ReceptusError::ConnectionPoolError {
+        .map_err(|e| BiblersError::ConnectionPoolError {
             root_cause: e.to_string(),
         })?;
 
@@ -92,19 +92,19 @@ pub fn all_books((state,): (State<ServerState>,)) -> Result<HttpResponse, HtmlRe
         .html("all-books", &state.template)
         .map_err(|e| {
             error!("{:?}", e);
-            ReceptusError::TemplateError
+            BiblersError::TemplateError
         })?;
 
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
 
-pub fn book(req: &HttpRequest<ServerState>) -> Result<HttpResponse, HtmlReceptusError> {
+pub fn book(req: &HttpRequest<ServerState>) -> Result<HttpResponse, HtmlBiblersError> {
     let info = Path::<(String,)>::extract(req).unwrap();
     let conn = req
         .state()
         .db
         .get()
-        .map_err(|e| ReceptusError::ConnectionPoolError {
+        .map_err(|e| BiblersError::ConnectionPoolError {
             root_cause: e.to_string(),
         })?;
 
@@ -114,23 +114,23 @@ pub fn book(req: &HttpRequest<ServerState>) -> Result<HttpResponse, HtmlReceptus
         .html("book", &req.state().template)
         .map_err(|e| {
             error!("{:?}", e);
-            ReceptusError::TemplateError
+            BiblersError::TemplateError
         })?;
 
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
 
 pub fn favicon(_: &HttpRequest<ServerState>) -> Result<fs::NamedFile> {
-    Ok(fs::NamedFile::open("./static/img/favicon.ico")?)
+    Ok(fs::NamedFile::open("./dist/img/favicon.ico")?)
 }
 
-pub fn index(req: &HttpRequest<ServerState>) -> Result<HttpResponse, HtmlReceptusError> {
+pub fn index(req: &HttpRequest<ServerState>) -> Result<HttpResponse, HtmlBiblersError> {
     let info = Path::<(String,)>::extract(req).unwrap();
     let conn = req
         .state()
         .db
         .get()
-        .map_err(|e| ReceptusError::ConnectionPoolError {
+        .map_err(|e| BiblersError::ConnectionPoolError {
             root_cause: e.to_string(),
         })?;
 
@@ -144,7 +144,7 @@ pub fn index(req: &HttpRequest<ServerState>) -> Result<HttpResponse, HtmlReceptu
     );
 
     if payload.verses.is_empty() {
-        Err(ReceptusError::InvalidReference {
+        Err(BiblersError::InvalidReference {
             reference: payload.reference.to_string(),
         })?;
     }
@@ -154,22 +154,22 @@ pub fn index(req: &HttpRequest<ServerState>) -> Result<HttpResponse, HtmlReceptu
         .html("chapter", &req.state().template)
         .map_err(|e| {
             error!("{:?}", e);
-            ReceptusError::TemplateError
+            BiblersError::TemplateError
         })?;
 
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
 
-pub fn search(req: &HttpRequest<ServerState>) -> Result<HttpResponse, HtmlReceptusError> {
+pub fn search(req: &HttpRequest<ServerState>) -> Result<HttpResponse, HtmlBiblersError> {
     let conn = req
         .state()
         .db
         .get()
-        .map_err(|e| ReceptusError::ConnectionPoolError {
+        .map_err(|e| BiblersError::ConnectionPoolError {
             root_cause: e.to_string(),
         })?;
     let params = req.query();
-    let q = params.get("q").ok_or(ReceptusError::TemplateError)?;
+    let q = params.get("q").ok_or(BiblersError::TemplateError)?;
     let title = format!(title_format!(), format!("Results for '{}'", q));
     let results = sword_drill::search(q, &conn)?;
     let body = TemplatePayload::new(
@@ -178,7 +178,7 @@ pub fn search(req: &HttpRequest<ServerState>) -> Result<HttpResponse, HtmlRecept
     ).html("search-results", &req.state().template)
     .map_err(|e| {
         error!("{:?}", e);
-        ReceptusError::TemplateError
+        BiblersError::TemplateError
     })?;
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }

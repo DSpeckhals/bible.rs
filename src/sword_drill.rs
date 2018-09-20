@@ -6,7 +6,7 @@ use regex::Regex;
 
 use models::*;
 use reference::Reference;
-use ReceptusError;
+use BiblersError;
 
 sql_function!(
     /// Represents the [`highlight` function](https://sqlite.org/fts5.html#the_highlight_function)
@@ -14,7 +14,7 @@ sql_function!(
     fn highlight(table_name: Text, column_index: Integer, prefix: Text, suffix: Text) -> Text;
 );
 
-pub fn verses<C>(reference: &Reference, conn: &C) -> Result<(Book, Vec<Verse>), ReceptusError>
+pub fn verses<C>(reference: &Reference, conn: &C) -> Result<(Book, Vec<Verse>), BiblersError>
 where
     C: Connection<Backend = Sqlite>,
 {
@@ -28,10 +28,10 @@ where
         .filter(ba::abbreviation.eq(reference.book.to_lowercase()))
         .first::<(Book, BookAbbreviation)>(conn)
         .map_err(|e| match e {
-            Error::NotFound => ReceptusError::BookNotFound {
+            Error::NotFound => BiblersError::BookNotFound {
                 book: reference.book.to_owned(),
             },
-            e => ReceptusError::DatabaseError { root_cause: e },
+            e => BiblersError::DatabaseError { root_cause: e },
         })?;
 
     let mut query = v::table
@@ -47,10 +47,10 @@ where
         .order_by((v::chapter.asc(), v::verse.asc()))
         .load(conn)
         .and_then(|verses| Ok((book, verses)))
-        .map_err(|e| ReceptusError::DatabaseError { root_cause: e })
+        .map_err(|e| BiblersError::DatabaseError { root_cause: e })
 }
 
-pub fn book<C>(book_name: &str, conn: &C) -> Result<(Book, Vec<i32>), ReceptusError>
+pub fn book<C>(book_name: &str, conn: &C) -> Result<(Book, Vec<i32>), BiblersError>
 where
     C: Connection<Backend = Sqlite>,
 {
@@ -63,17 +63,17 @@ where
         .order_by(b::id)
         .first::<(Book, BookAbbreviation)>(conn)
         .map_err(|e| match e {
-            Error::NotFound => ReceptusError::BookNotFound {
+            Error::NotFound => BiblersError::BookNotFound {
                 book: book_name.to_owned(),
             },
-            e => ReceptusError::DatabaseError { root_cause: e },
+            e => BiblersError::DatabaseError { root_cause: e },
         })?;
     let chapters: Vec<i32> = (1..=book.chapter_count).collect();
 
     Ok((book, chapters))
 }
 
-pub fn all_books<C>(conn: &C) -> Result<Vec<Book>, ReceptusError>
+pub fn all_books<C>(conn: &C) -> Result<Vec<Book>, BiblersError>
 where
     C: Connection<Backend = Sqlite>,
 {
@@ -82,12 +82,12 @@ where
     books
         .order_by(id)
         .load(conn)
-        .map_err(|e| ReceptusError::DatabaseError { root_cause: e })
+        .map_err(|e| BiblersError::DatabaseError { root_cause: e })
 }
 
 const SEARCH_RESULT_LIMIT: i64 = 15;
 
-pub fn search<C>(query: &str, conn: &C) -> Result<Vec<(VerseFTS, Book)>, ReceptusError>
+pub fn search<C>(query: &str, conn: &C) -> Result<Vec<(VerseFTS, Book)>, BiblersError>
 where
     C: Connection<Backend = Sqlite>,
 {
@@ -136,5 +136,5 @@ where
         .order_by(verses_fts::rank)
         .limit(SEARCH_RESULT_LIMIT)
         .load::<(VerseFTS, Book)>(conn)
-        .map_err(|e| ReceptusError::DatabaseError { root_cause: e })
+        .map_err(|e| BiblersError::DatabaseError { root_cause: e })
 }

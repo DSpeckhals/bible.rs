@@ -4,7 +4,7 @@ extern crate diesel_migrations;
 extern crate dotenv;
 extern crate env_logger;
 extern crate handlebars;
-extern crate receptus;
+extern crate biblers;
 
 use std::env;
 use std::error::Error;
@@ -19,10 +19,10 @@ use diesel_migrations::run_pending_migrations;
 use dotenv::dotenv;
 use handlebars::Handlebars;
 
-use receptus::controllers::{api, view};
-use receptus::establish_connection;
-use receptus::ServerState;
-use receptus::SqliteConnectionManager;
+use biblers::controllers::{api, view};
+use biblers::establish_connection;
+use biblers::ServerState;
+use biblers::SqliteConnectionManager;
 
 fn register_templates() -> Result<Handlebars, Box<Error>> {
     let mut tpl = Handlebars::new();
@@ -51,7 +51,7 @@ fn main() -> Result<(), Box<Error>> {
     // Run DB migrations for a new SQLite database
     run_pending_migrations(&establish_connection()).expect("Error running migrations");
 
-    server::new(move || {
+    server::new(|| {
         // Create handlebars registry
         let template = register_templates().unwrap();
 
@@ -66,7 +66,7 @@ fn main() -> Result<(), Box<Error>> {
         App::with_state(ServerState { db, template })
             .handler(
                 "/static",
-                fs::StaticFiles::with_config("./static", StaticFileConfig).unwrap(),
+                fs::StaticFiles::with_config("./dist", StaticFileConfig).unwrap(),
             ).resource("/", |r| {
                 r.name("bible");
                 r.get().with(view::all_books)

@@ -4,7 +4,7 @@ use std::str::FromStr;
 
 use regex::{Match, Regex};
 
-use ReceptusError;
+use BiblersError;
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Reference {
@@ -35,7 +35,7 @@ impl fmt::Display for Reference {
 }
 
 impl FromStr for Reference {
-    type Err = ReceptusError;
+    type Err = BiblersError;
 
     fn from_str(s: &str) -> Result<Reference, Self::Err> {
         lazy_static! {
@@ -89,16 +89,16 @@ impl FromStr for Reference {
     }
 }
 
-fn parse_num_match(m: Match) -> Result<i32, ReceptusError> {
+fn parse_num_match(m: Match) -> Result<i32, BiblersError> {
     m.as_str()
         .parse()
-        .map_err(|_| ReceptusError::InvalidReference {
+        .map_err(|_| BiblersError::InvalidReference {
             reference: m.as_str().to_string(),
         })
 }
 
-fn invalid_reference(s: &str) -> ReceptusError {
-    ReceptusError::InvalidReference {
+fn invalid_reference(s: &str) -> BiblersError {
+    BiblersError::InvalidReference {
         reference: s.to_string(),
     }
 }
