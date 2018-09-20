@@ -1,2 +1,4 @@
+.env
 /target
+static/css
 **/*.rs.bk

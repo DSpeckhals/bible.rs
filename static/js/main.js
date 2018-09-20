@@ -15,9 +15,6 @@
     autocomplete("#q", { autoselect: true, debounce: 350, hint: false }, [
         {
             source: getResults,
-            // displayKey: function (result) {
-            //     return result.link.label;
-            // },
             templates: {
                 suggestion: function (result) {
                     return "<p><i>" + result.link.label + "</i> | " + result.text + "</p>";

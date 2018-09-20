@@ -1,0 +1,206 @@
+@import "reset";
+
+$light-grey: rgb(221, 221, 221);
+$mid-grey: rgb(97, 97, 97);
+$dark-grey: rgb(68, 68, 68);
+$highlight: rgb(178, 215, 255);
+$input-focus: rgb(7, 141, 216);
+
+body {
+    margin: .5rem;
+    font-family: "Helvetica Neue", "Liberation Sans", Arial, FreeSans, sans-serif;
+}
+
+h1 {
+    font-size: 2rem;
+    color: $dark-grey;
+    text-align: center;
+    margin: 1rem 0;
+}
+
+p {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+a {
+    color: inherit;
+}
+
+ol {
+    margin: 0;
+    padding: 0;
+    text-align: center;
+    > li {
+        display: inline-block;
+        list-style-type: none;
+        margin: .5rem;
+        border: 1px solid $mid-grey;
+        text-align: center;
+        > a {
+            color: $mid-grey;
+            font-size: 1.25rem;
+            display: block;
+            line-height: 4rem;
+            text-decoration: none;
+            &:hover {
+                background: $light-grey;
+            }
+            &:active {
+                background: $mid-grey;
+                color: rgb(255, 255, 255);
+            }
+        }
+    }
+}
+
+.container {
+    max-width: 35rem;
+    margin: 2rem auto;
+}
+
+nav {
+    &.top-nav, &.bottom-nav {
+        text-align: center;
+    }
+}
+
+.heading {
+    .previous {
+        display: inline-block;
+        width: 15%;
+        text-align: left;
+    }
+    h1 {
+        display: inline-block;
+        width: 67%;
+        text-align: center;
+    }
+    .next {
+        display: inline-block;
+        width: 15%;
+        text-align: right;
+    }
+}
+
+img.logo {
+    vertical-align: middle;
+}
+
+/* Bible Page */
+
+.all-books ol > li {
+    width: 28%;
+    height: 4rem;
+    > a {
+        font-size: 1rem;
+    }
+}
+
+@media screen and (max-width: 600px) {
+    .all-books ol > li {
+        width: 42%;
+    }
+}
+
+/* Book Page */
+
+.book ol > li {
+    width: 4rem;
+    height: 4rem;
+}
+
+/* Chapter Page */
+
+.chapter article {
+    clear: both;
+    p {
+        color: $mid-grey;
+        font-size: 1.1rem;
+        line-height: 1.5rem;
+        > a {
+            font-size: .75rem;
+        }
+        &:target {
+            padding: .25rem;
+            background-color: $light-grey;
+            border-radius: 1px;
+        }
+    }
+}
+
+/* Search */
+
+.search-results {
+    ol > li {
+        padding: .5rem;
+        text-align: left;
+        width: 100%;
+        > a {
+            font-size: 1rem;
+            color: $dark-grey;
+            line-height: 1;
+        }
+    }
+    em {
+        text-decoration: underline;
+    }
+}
+
+/* Autocomplete */
+
+.algolia-autocomplete {
+    width: 100%;
+}
+
+#q {
+    font-size: 1.5rem;
+    width: 100%;
+    box-sizing: border-box;
+    outline: none;
+    border: none;
+    border-radius: 1px;
+    margin-top: 5px;
+    padding: 10px 16px;
+    transition: box-shadow 300ms ease-in-out;
+    box-shadow: 0 0 0 1px $light-grey, 0 0 0 2px transparent;
+    color: $mid-grey;
+    background-color: rgb(255, 255, 255);
+}
+
+.algolia-autocomplete {
+    .aa-input {
+        font-size: 1.5rem;
+        width: 100%;
+        box-sizing: border-box;
+        outline: none;
+        border: none;
+        border-radius: 1px;
+        margin-top: 5px;
+        padding: 10px 16px;
+        transition: box-shadow 300ms ease-in-out;
+        box-shadow: 0 0 0 1px $light-grey, 0 0 0 2px transparent;
+        color: $mid-grey;
+        background-color: rgb(255, 255, 255);
+        &:focus {
+            border-radius: 2px;
+            box-shadow: 0 0 8px $input-focus;
+        }
+    }
+    .aa-dropdown-menu {
+        width: 100%;
+        background-color: rgb(255, 255, 255);
+        border: 1px solid $mid-grey;
+        .aa-suggestion {
+            cursor: pointer;
+            padding: .25rem;
+            &.aa-cursor {
+                background-color: $highlight;
+            }
+            em {
+                font-weight: bold;
+                font-style: normal;
+            }
+        }
+    }
+}

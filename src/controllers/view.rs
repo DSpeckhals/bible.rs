@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use actix_web::{error, fs, FromRequest, HttpRequest, HttpResponse, Path, Result, State};
 use handlebars::Handlebars;
 use serde::Serialize;

@@ -8,7 +8,7 @@
         <ol>
             {{~ #each matches as |match|}}
             <li>
-                <a href="/{{match.link.url}}"><strong>{{match.link.label}}</strong> | {{{match.text}}}</a>
+                <a href="{{match.link.url}}"><strong>{{match.link.label}}</strong> | {{{match.text}}}</a>
             </li>
             {{~ /each}}
         </ol>
