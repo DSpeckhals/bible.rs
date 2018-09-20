@@ -1,4 +1,4 @@
 .env
-/target
-/dist/css
+target
+web/dist/css
 **/*.rs.bk

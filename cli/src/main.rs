@@ -1,12 +1,15 @@
 #[macro_use]
 extern crate clap;
-extern crate biblers;
+extern crate db;
+extern crate dotenv;
 
+use std::env;
 use std::io::{self, Write};
 
-use biblers::establish_connection;
-use biblers::reference::Reference;
-use biblers::sword_drill::verses;
+use dotenv::dotenv;
+
+use db::{establish_connection, sword_drill};
+use db::models::Reference;
 
 fn main() -> io::Result<()> {
     let matches = clap_app!(biblerscli =>
@@ -16,14 +19,17 @@ fn main() -> io::Result<()> {
         (@arg REFERENCE: +required "The Bible reference to look up")
     ).get_matches();
 
-    let conn = establish_connection();
+    dotenv().ok();
+    let url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+
+    let conn = establish_connection(&url);
 
     let reference: Reference = matches
         .value_of("REFERENCE")
         .unwrap_or("John 3:16")
         .parse()
         .expect("Invalid reference");
-    let result = verses(&reference, &conn);
+    let result = sword_drill::verses(&reference, &conn);
 
     match result {
         Ok((book, verses)) => {

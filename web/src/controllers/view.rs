@@ -1,18 +1,19 @@
-use actix_web::{error, fs, FromRequest, HttpRequest, HttpResponse, Path, Result, State};
+use actix_web::{error, FromRequest, HttpRequest, HttpResponse, Path, Result, State};
 use handlebars::Handlebars;
 use serde::Serialize;
 
+use db::models::Reference;
+use db::{sword_drill, BiblersError};
+
 use controllers::{AllBooksPayload, BookPayload, ErrorPayload, SearchResultPayload, VersesPayload};
-use reference::Reference;
-use sword_drill;
-use {BiblersError, ServerState};
+use ServerState;
 
 lazy_static! {
     static ref ERR_TPL: Handlebars = {
         let mut tpl = Handlebars::new();
-        tpl.register_template_file("base", "./templates/base.hbs")
+        tpl.register_template_file("base", "./web/templates/base.hbs")
             .unwrap();
-        tpl.register_template_file("error", "./templates/error.hbs")
+        tpl.register_template_file("error", "./web/templates/error.hbs")
             .unwrap();
         tpl
     };
@@ -60,6 +61,9 @@ impl error::ResponseError for HtmlBiblersError {
                 .content_type("text/html")
                 .body(body),
             BiblersError::DatabaseError { .. } => HttpResponse::InternalServerError()
+                .content_type("text/html")
+                .body(body),
+            BiblersError::DatabaseMigrationError { .. } => HttpResponse::InternalServerError()
                 .content_type("text/html")
                 .body(body),
             BiblersError::InvalidReference { .. } => HttpResponse::BadRequest()
@@ -118,10 +122,6 @@ pub fn book(req: &HttpRequest<ServerState>) -> Result<HttpResponse, HtmlBiblersE
         })?;
 
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
-}
-
-pub fn favicon(_: &HttpRequest<ServerState>) -> Result<fs::NamedFile> {
-    Ok(fs::NamedFile::open("./dist/img/favicon.ico")?)
 }
 
 pub fn index(req: &HttpRequest<ServerState>) -> Result<HttpResponse, HtmlBiblersError> {

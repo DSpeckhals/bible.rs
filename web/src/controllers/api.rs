@@ -2,10 +2,12 @@ use std::convert::From;
 
 use actix_web::{error, FromRequest, HttpRequest, HttpResponse, Json, Path, Result};
 
+use db::models::Reference;
+use db::sword_drill;
+use db::BiblersError;
+
 use controllers::{ErrorPayload, SearchResultPayload, VersesPayload};
-use reference::Reference;
-use sword_drill;
-use {BiblersError, ServerState};
+use ServerState;
 
 #[derive(Fail, Debug)]
 #[fail(display = "Json Error")]
@@ -27,6 +29,9 @@ impl error::ResponseError for JsonBiblersError {
                 HttpResponse::InternalServerError().body(ErrorPayload::new(e).json())
             }
             ref e @ BiblersError::DatabaseError { .. } => {
+                HttpResponse::InternalServerError().body(ErrorPayload::new(e).json())
+            }
+            ref e @ BiblersError::DatabaseMigrationError { .. } => {
                 HttpResponse::InternalServerError().body(ErrorPayload::new(e).json())
             }
             ref e @ BiblersError::InvalidReference { .. } => {
