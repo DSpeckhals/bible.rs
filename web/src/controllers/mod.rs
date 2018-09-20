@@ -3,9 +3,8 @@ use serde_json;
 use url::Url;
 use url_serde;
 
-use models::{Book, Verse, VerseFTS};
-use reference::Reference;
-use BiblersError;
+use db::models::{Book, Reference, Verse, VerseFTS};
+use db::BiblersError;
 
 const NAME: &str = "Bible.rs";
 

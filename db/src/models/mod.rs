@@ -1,5 +1,3 @@
-#![allow(proc_macro_derive_resolution_fallback)]
-
 use diesel::backend::Backend;
 use diesel::deserialize::{self, FromSql, FromSqlRow, Queryable};
 use diesel::row::Row;
@@ -70,3 +68,6 @@ pub struct VerseFTS {
     pub words: String,
     pub rank: f32,
 }
+
+mod reference;
+pub use self::reference::Reference;

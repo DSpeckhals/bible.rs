@@ -105,7 +105,7 @@ fn invalid_reference(s: &str) -> BiblersError {
 
 #[cfg(test)]
 mod tests {
-    use reference::Reference;
+    use models::Reference;
 
     #[test]
     fn fmt() {

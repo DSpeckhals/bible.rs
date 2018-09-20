@@ -1,0 +1,11 @@
+[package]
+name = "cli"
+version = "0.1.0"
+authors = ["Dustin Speckhals <dustin1114@gmail.com>"]
+
+[dependencies.db]
+path = "../db"
+
+[dependencies]
+clap = "2.32.0"
+dotenv = "0.13.0"

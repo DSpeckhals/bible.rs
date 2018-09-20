@@ -5,7 +5,6 @@ use diesel::sqlite::Sqlite;
 use regex::Regex;
 
 use models::*;
-use reference::Reference;
 use BiblersError;
 
 sql_function!(

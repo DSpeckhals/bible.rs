@@ -1,10 +1,20 @@
 extern crate actix_web;
-extern crate biblers;
-extern crate diesel;
-extern crate diesel_migrations;
+extern crate db;
 extern crate dotenv;
 extern crate env_logger;
+#[macro_use]
+extern crate failure;
 extern crate handlebars;
+#[macro_use]
+extern crate lazy_static;
+#[macro_use]
+extern crate log;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde_json;
+extern crate url;
+extern crate url_serde;
 
 use std::env;
 use std::error::Error;
@@ -14,20 +24,22 @@ use actix_web::{
     http::{Method, NormalizePath},
     middleware, server, App,
 };
-use diesel::r2d2;
-use diesel_migrations::run_pending_migrations;
 use dotenv::dotenv;
 use handlebars::Handlebars;
 
-use biblers::controllers::{api, view};
-use biblers::establish_connection;
-use biblers::ServerState;
-use biblers::SqliteConnectionManager;
+use db::{build_pool, establish_connection, run_migrations, SqliteConnectionPool};
+
+use controllers::{api, view};
+
+pub struct ServerState {
+    pub db: SqliteConnectionPool,
+    pub template: Handlebars,
+}
 
 fn register_templates() -> Result<Handlebars, Box<Error>> {
     let mut tpl = Handlebars::new();
     tpl.set_strict_mode(true);
-    tpl.register_templates_directory(".hbs", "./templates/")?;
+    tpl.register_templates_directory(".hbs", "./web/templates/")?;
 
     Ok(tpl)
 }
@@ -48,25 +60,23 @@ fn main() -> Result<(), Box<Error>> {
     env::set_var("RUST_LOG", "info");
     env_logger::init();
 
-    // Run DB migrations for a new SQLite database
-    run_pending_migrations(&establish_connection()).expect("Error running migrations");
+    let url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
-    server::new(|| {
+    // Run DB migrations for a new SQLite database
+    run_migrations(&establish_connection(&url)).expect("Error running migrations");
+
+    server::new(move || {
         // Create handlebars registry
         let template = register_templates().unwrap();
 
         // Create a connection pool
-        let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-        let db = r2d2::Pool::builder()
-            .max_size(15)
-            .build(SqliteConnectionManager::new(database_url))
-            .unwrap();
+        let db = build_pool(&url);
 
         // Wire up the application
         App::with_state(ServerState { db, template })
             .handler(
                 "/static",
-                fs::StaticFiles::with_config("./dist", StaticFileConfig).unwrap(),
+                fs::StaticFiles::with_config("./web/dist", StaticFileConfig).unwrap(),
             ).resource("/", |r| {
                 r.name("bible");
                 r.get().with(view::all_books)
@@ -87,3 +97,5 @@ fn main() -> Result<(), Box<Error>> {
 
     Ok(())
 }
+
+mod controllers;
