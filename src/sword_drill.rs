@@ -2,6 +2,7 @@ use diesel::prelude::*;
 use diesel::result::Error;
 use diesel::sql_types::{Integer, Text};
 use diesel::sqlite::Sqlite;
+use regex::Regex;
 
 use models::*;
 use reference::Reference;
@@ -84,7 +85,7 @@ where
         .map_err(|e| ReceptusError::DatabaseError { root_cause: e })
 }
 
-const SEARCH_RESULT_LIMIT: i64 = 20;
+const SEARCH_RESULT_LIMIT: i64 = 15;
 
 pub fn search<C>(query: &str, conn: &C) -> Result<Vec<(VerseFTS, Book)>, ReceptusError>
 where
@@ -92,6 +93,28 @@ where
 {
     use schema::books;
     use schema::verses_fts;
+
+    lazy_static! {
+        static ref ALPHA_NUM: Regex = Regex::new(r"[^a-zA-Z ]+").unwrap();
+    }
+
+    let had_quote = query.contains('"');
+
+    // Replace all characters that aren't alpha or space
+    let mut query = ALPHA_NUM.replace_all(query, "").to_string();
+
+    // Don't even try to run the query if there are no characters
+    if query.is_empty() {
+        return Ok(vec![]);
+    }
+
+    // Add back quotes safely if it had a quote before, and was removed
+    // This makes FTS5 query the string as a phrase.
+    query = if had_quote {
+        format!("\"{}\"", query)
+    } else {
+        query
+    };
 
     verses_fts::table
         .inner_join(books::table.on(books::id.eq(verses_fts::book)))
@@ -109,7 +132,7 @@ where
                 books::chapter_count,
                 books::testament,
             ),
-        )).filter(verses_fts::text.eq(format!("\"{}\"*", query)))
+        )).filter(verses_fts::text.eq(format!("{}*", query)))
         .order_by(verses_fts::rank)
         .limit(SEARCH_RESULT_LIMIT)
         .load::<(VerseFTS, Book)>(conn)

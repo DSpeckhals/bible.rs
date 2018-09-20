@@ -1,7 +1,5 @@
 (function () {
     function getResults(q, cb) {
-        q = q.replace(/\"/g, "\"\"").trim();
-
         if (!q) {
             cb([]);
             return;
@@ -17,9 +15,9 @@
     autocomplete("#q", { autoselect: true, debounce: 350, hint: false }, [
         {
             source: getResults,
-            displayKey: function (result) {
-                return result.link.label;
-            },
+            // displayKey: function (result) {
+            //     return result.link.label;
+            // },
             templates: {
                 suggestion: function (result) {
                     return "<p><i>" + result.link.label + "</i> | " + result.text + "</p>";
