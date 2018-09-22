@@ -17,6 +17,11 @@ p {
 
 a {
     color: inherit;
+    text-decoration: none;
+
+    img {
+        vertical-align: middle;
+    }
 }
 
 ol {
@@ -34,7 +39,6 @@ ol {
             font-size: 1.25rem;
             display: block;
             line-height: 4rem;
-            text-decoration: none;
             &:hover {
                 background: $light-grey;
             }

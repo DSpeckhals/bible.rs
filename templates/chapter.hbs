@@ -9,13 +9,17 @@
         <div class="heading">
             <nav class="previous">
                 {{~ #if links.previous}}
-                <a href="{{links.previous.url}}" title="{{links.previous.label}}">Previous</a>
+                <a href="{{links.previous.url}}" title="{{links.previous.label}}">
+                    <img src="/static/img/arrow-back.svg" alt="Back Arrow" height="28" width="28">
+                </a>
                 {{~ /if}}
             </nav>
             <h1>{{reference_string}}</h1>
             <nav class="next">
                 {{~ #if links.next}}
-                <a href="{{links.next.url}}" title="{{links.next.label}}">Next</a>
+                <a href="{{links.next.url}}" title="{{links.next.label}}">
+                    <img src="/static/img/arrow-forward.svg" alt="Forward Arrow" height="28" width="28">
+                </a>
                 {{~ /if}}
             </nav>
         </div>
@@ -30,9 +34,19 @@
     </article>
     <nav class="bottom-nav">
         {{~ #if reference.verses}}
-        <p><a href="{{links.chapter.url}}">View Full Chapter</a></p>
+        <p>
+            <a href="{{links.chapter.url}}" title="{{links.chapter.label}}">
+                <img src="/static/img/unfold-more.svg" alt="View all of {{links.chapter.label}}" height="28" width="28">
+                View Full Chapter
+            </a>
+        </p>
         {{~ /if}}
-        <p><a href="{{links.book.url}}">{{links.book.label}}</a></p>
+        <p>
+            <a href="{{links.book.url}}" title="{{links.book.label}}">
+                <img src="/static/img/book.svg" alt="Go to {{links.book.label}}" height="28" width="28">
+                {{links.book.label}}
+            </a>
+        </p>
     </nav>
 </div>
 {{~ /inline}}
