@@ -1,10 +1,10 @@
 extern crate actix_web;
+extern crate biblers;
 extern crate diesel;
 extern crate diesel_migrations;
 extern crate dotenv;
 extern crate env_logger;
 extern crate handlebars;
-extern crate biblers;
 
 use std::env;
 use std::error::Error;
@@ -70,8 +70,7 @@ fn main() -> Result<(), Box<Error>> {
             ).resource("/", |r| {
                 r.name("bible");
                 r.get().with(view::all_books)
-            }).resource("/favicon.ico", |r| r.get().f(view::favicon))
-            .resource("search", |r| r.get().f(view::search))
+            }).resource("search", |r| r.get().f(view::search))
             .resource("{book}", |r| {
                 r.name("book");
                 r.get().f(view::book)
