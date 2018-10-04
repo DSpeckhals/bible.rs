@@ -5,6 +5,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="theme-color" content="#444444">
+    <meta name="description" content="Browse and search the King James version of the Bible using a fast and slick interface.">
     <link rel="shortcut icon" href="/static/img/bible.rs.png" type="image/png">
     <link rel="stylesheet" href="/static/css/style.css">
     <title>{{title}}</title>
@@ -13,13 +15,11 @@
 <body>
     <header>
         <form id="search-form" action="/view/search">
-            <input type="search" id="q" name="q" autocomplete="off" placeholder="Click or press 'S' to search...">
+            <input type="search" id="q" name="q" autocomplete="off" placeholder="Click or press 'S' to search..." aria-label="Search the Bible">
         </form>
     </header>
     <main>
-    {{~ #with data}}
-    {{~> page ~}}
-    {{~ /with}}
+    {{~> page data ~}}
     </main>
     <script src="/static/js/autocomplete.min.js"></script>
     <script src="/static/js/main.js"></script>
