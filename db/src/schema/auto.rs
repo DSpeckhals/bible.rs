@@ -25,6 +25,22 @@ table! {
     }
 }
 
+table! {
+    words (id) {
+        id -> Integer,
+        book -> Integer,
+        chapter -> Integer,
+        paragraph -> Integer,
+        verse -> Integer,
+        position -> Integer,
+        word -> Text,
+        punctuation -> Nullable<Text>,
+        italic -> Bool,
+        close_parentheses -> Bool,
+        open_parentheses -> Bool,
+    }
+}
+
 joinable!(book_abbreviations -> books (book_id));
 joinable!(verses -> books (book));
 
@@ -32,4 +48,5 @@ allow_tables_to_appear_in_same_query!(
     book_abbreviations,
     books,
     verses,
+    words,
 );

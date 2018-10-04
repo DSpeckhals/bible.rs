@@ -5,7 +5,7 @@ use diesel::sqlite::Sqlite;
 use regex::Regex;
 
 use models::*;
-use BiblersError;
+use {BiblersError, VerseFormat};
 
 sql_function!(
     /// Represents the [`highlight` function](https://sqlite.org/fts5.html#the_highlight_function)
@@ -13,40 +13,46 @@ sql_function!(
     fn highlight(table_name: Text, column_index: Integer, prefix: Text, suffix: Text) -> Text;
 );
 
-pub fn verses<C>(reference: &Reference, conn: &C) -> Result<(Book, Vec<Verse>), BiblersError>
+pub fn verses<C>(
+    reference: &Reference,
+    format: &VerseFormat,
+    conn: &C,
+) -> Result<(Book, Vec<Verse>), BiblersError>
 where
     C: Connection<Backend = Sqlite>,
 {
-    use schema::book_abbreviations as ba;
-    use schema::books as b;
-    use schema::verses as v;
+    use schema::verses as plain_text;
+    use schema::verses_html as html;
 
-    // Get the book
-    let (book, _) = b::table
-        .inner_join(ba::table)
-        .filter(ba::abbreviation.eq(reference.book.to_lowercase()))
-        .first::<(Book, BookAbbreviation)>(conn)
-        .map_err(|e| match e {
-            Error::NotFound => BiblersError::BookNotFound {
-                book: reference.book.to_owned(),
-            },
-            e => BiblersError::DatabaseError { root_cause: e },
-        })?;
+    let (book, _) = book(&reference.book.to_lowercase(), conn)?;
 
-    let mut query = v::table
-        .filter(v::book.eq(book.id))
-        .filter(v::chapter.eq(reference.chapter))
-        .into_boxed();
+    match format {
+        VerseFormat::PlainText => {
+            let mut query = plain_text::table
+                .filter(plain_text::book.eq(book.id))
+                .filter(plain_text::chapter.eq(reference.chapter))
+                .order_by((plain_text::chapter.asc(), plain_text::verse.asc()))
+                .into_boxed();
 
-    if let Some(ref verses) = reference.verses {
-        query = query.filter(v::verse.between(verses.start, verses.end));
-    }
+            if let Some(ref verses) = reference.verses {
+                query = query.filter(plain_text::verse.between(verses.start, verses.end));
+            }
+            query.load(conn)
+        }
+        VerseFormat::HTML => {
+            let mut query = html::table
+                .filter(html::book.eq(book.id))
+                .filter(html::chapter.eq(reference.chapter))
+                .order_by((html::chapter.asc(), html::verse.asc()))
+                .into_boxed();
 
-    query
-        .order_by((v::chapter.asc(), v::verse.asc()))
-        .load(conn)
-        .and_then(|verses| Ok((book, verses)))
-        .map_err(|e| BiblersError::DatabaseError { root_cause: e })
+            if let Some(ref verses) = reference.verses {
+                query = query.filter(html::verse.between(verses.start, verses.end));
+            }
+            query.load(conn)
+        }
+    }.and_then(|verses| Ok((book, verses)))
+    .map_err(|e| BiblersError::DatabaseError { root_cause: e })
 }
 
 pub fn book<C>(book_name: &str, conn: &C) -> Result<(Book, Vec<i32>), BiblersError>
@@ -59,7 +65,6 @@ where
     let (book, _) = b::table
         .inner_join(ba::table)
         .filter(ba::abbreviation.eq(book_name.to_lowercase()))
-        .order_by(b::id)
         .first::<(Book, BookAbbreviation)>(conn)
         .map_err(|e| match e {
             Error::NotFound => BiblersError::BookNotFound {
