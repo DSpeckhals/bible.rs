@@ -26,6 +26,16 @@ table! {
 }
 
 table! {
+    verses_html (id) {
+        id -> Integer,
+        book -> Integer,
+        chapter -> Integer,
+        verse -> Integer,
+        words -> Text,
+    }
+}
+
+table! {
     words (id) {
         id -> Integer,
         book -> Integer,
@@ -43,10 +53,12 @@ table! {
 
 joinable!(book_abbreviations -> books (book_id));
 joinable!(verses -> books (book));
+joinable!(verses_html -> books (book));
 
 allow_tables_to_appear_in_same_query!(
     book_abbreviations,
     books,
     verses,
+    verses_html,
     words,
 );

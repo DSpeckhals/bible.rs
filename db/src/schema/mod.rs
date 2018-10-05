@@ -13,16 +13,6 @@ table! {
     }
 }
 
-table! {
-    verses_html (id) {
-        id -> Integer,
-        book -> Integer,
-        chapter -> Integer,
-        verse -> Integer,
-        words -> Text,
-    }
-}
-
 allow_tables_to_appear_in_same_query!(books, verses_fts);
 
 mod auto;

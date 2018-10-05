@@ -22,7 +22,16 @@ INSERT INTO verses
     FROM words
     GROUP BY book, chapter, verse;
 
-CREATE VIEW verses_html AS
+CREATE TABLE verses_html (
+    id INTEGER PRIMARY KEY NOT NULL,
+    book INTEGER NOT NULL REFERENCES books(id),
+    chapter INTEGER NOT NULL,
+    verse INTEGER NOT NULL,
+    words TEXT NOT NULL
+);
+CREATE INDEX verses_html_book_chapter_idx ON verses_html(book, chapter);
+
+INSERT INTO verses_html
     SELECT CAST(book || substr('000' || chapter, -3, 3) || substr('000' || verse, -3, 3) AS INTEGER) AS id,
         book,
         chapter,
