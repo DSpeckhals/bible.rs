@@ -3,7 +3,7 @@ use handlebars::Handlebars;
 use serde::Serialize;
 
 use db::models::Reference;
-use db::{sword_drill, BiblersError};
+use db::{sword_drill, BiblersError, VerseFormat};
 
 use controllers::{AllBooksPayload, BookPayload, ErrorPayload, SearchResultPayload, VersesPayload};
 use ServerState;
@@ -138,7 +138,7 @@ pub fn index(req: &HttpRequest<ServerState>) -> Result<HttpResponse, HtmlBiblers
     let reference: Reference = raw_reference.parse()?;
 
     let payload = VersesPayload::new(
-        sword_drill::verses(&reference, &*conn)?,
+        sword_drill::verses(&reference, &VerseFormat::HTML, &*conn)?,
         reference, // Consume the reference, thus making it no longer usable
         &req.drop_state(),
     );

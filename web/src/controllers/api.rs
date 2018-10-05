@@ -4,7 +4,7 @@ use actix_web::{error, FromRequest, HttpRequest, HttpResponse, Json, Path, Resul
 
 use db::models::Reference;
 use db::sword_drill;
-use db::BiblersError;
+use db::{BiblersError, VerseFormat};
 
 use controllers::{ErrorPayload, SearchResultPayload, VersesPayload};
 use ServerState;
@@ -55,7 +55,7 @@ pub fn index(req: &HttpRequest<ServerState>) -> Result<Json<VersesPayload>, Json
         })?;
     let reference: Reference = info.0.parse()?;
     let payload = VersesPayload::new(
-        sword_drill::verses(&reference, &*conn)?,
+        sword_drill::verses(&reference, &VerseFormat::PlainText, &*conn)?,
         reference,
         &req.drop_state(),
     );
@@ -78,7 +78,7 @@ pub fn search(
         .map_or(Ok(Json(SearchResultPayload::empty())), |q| {
             // Check if query can be parsed as a reference
             if let Ok(r) = q.parse::<Reference>() {
-                match sword_drill::verses(&r, &conn) {
+                match sword_drill::verses(&r, &VerseFormat::PlainText, &conn) {
                     Ok(results) => Ok(Json(SearchResultPayload::from_verses(
                         results,
                         &req.drop_state(),

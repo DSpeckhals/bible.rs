@@ -26,6 +26,11 @@ use diesel_migrations::{
 pub type SqliteConnectionManager = r2d2::ConnectionManager<SqliteConnection>;
 pub type SqliteConnectionPool = r2d2::Pool<SqliteConnectionManager>;
 
+pub enum VerseFormat {
+    HTML,
+    PlainText,
+}
+
 #[derive(Fail, Debug)]
 pub enum BiblersError {
     #[fail(display = "'{}' was not found.", book)]
