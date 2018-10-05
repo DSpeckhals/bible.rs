@@ -1,16 +1,18 @@
-.chapter article {
-    clear: both;
-    p {
-        color: $mid-grey;
-        font-size: 1.1rem;
-        line-height: 1.5rem;
-        > a {
-            font-size: .75rem;
-        }
-        &:target {
-            padding: .25rem;
-            background-color: $light-grey;
-            border-radius: 1px;
+.chapter {
+    article {
+        clear: both;
+        p {
+            color: $mid-grey;
+            font-size: 1.1rem;
+            line-height: 1.5rem;
+            > a {
+                font-size: .75rem;
+            }
+            &:target {
+                padding: .25rem;
+                background-color: $light-grey;
+                border-radius: 1px;
+            }
         }
     }
 }
