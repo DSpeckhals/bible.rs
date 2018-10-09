@@ -22,29 +22,17 @@ impl From<BiblersError> for JsonBiblersError {
 impl error::ResponseError for JsonBiblersError {
     fn error_response(&self) -> HttpResponse {
         match self.0 {
-            ref e @ BiblersError::BookNotFound { .. } => {
-                HttpResponse::NotFound().body(ErrorPayload::new(e).json())
-            }
-            ref e @ BiblersError::ConnectionPoolError { .. } => {
-                HttpResponse::InternalServerError().body(ErrorPayload::new(e).json())
-            }
-            ref e @ BiblersError::DatabaseError { .. } => {
-                HttpResponse::InternalServerError().body(ErrorPayload::new(e).json())
-            }
-            ref e @ BiblersError::DatabaseMigrationError { .. } => {
-                HttpResponse::InternalServerError().body(ErrorPayload::new(e).json())
-            }
-            ref e @ BiblersError::InvalidReference { .. } => {
-                HttpResponse::BadRequest().body(ErrorPayload::new(e).json())
-            }
-            ref e @ BiblersError::TemplateError => {
-                HttpResponse::InternalServerError().body(ErrorPayload::new(e).json())
-            }
-        }
+            BiblersError::BookNotFound { .. } => HttpResponse::NotFound(),
+            BiblersError::ConnectionPoolError { .. } => HttpResponse::InternalServerError(),
+            BiblersError::DatabaseError { .. } => HttpResponse::InternalServerError(),
+            BiblersError::DatabaseMigrationError { .. } => HttpResponse::InternalServerError(),
+            BiblersError::InvalidReference { .. } => HttpResponse::BadRequest(),
+            BiblersError::TemplateError => HttpResponse::InternalServerError(),
+        }.body(ErrorPayload::from_error(&self.0).to_json())
     }
 }
 
-pub fn index(req: &HttpRequest<ServerState>) -> Result<Json<VersesPayload>, JsonBiblersError> {
+pub fn reference(req: &HttpRequest<ServerState>) -> Result<Json<VersesPayload>, JsonBiblersError> {
     let info = Path::<(String,)>::extract(req).unwrap();
     let conn = req
         .state()

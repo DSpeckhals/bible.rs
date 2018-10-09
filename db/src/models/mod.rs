@@ -4,6 +4,7 @@ use diesel::row::Row;
 use diesel::sql_types::Text;
 use diesel::sqlite::Sqlite;
 
+/// Model representing a Bible verse.
 #[derive(Debug, Queryable, Serialize)]
 pub struct Verse {
     pub id: i32,
@@ -13,6 +14,8 @@ pub struct Verse {
     pub words: String,
 }
 
+/// Enum for the testaments in the Bible (Old or New). This is mapped
+/// to a column in the database table `books`.
 #[derive(Debug, Serialize)]
 pub enum Testament {
     Old,
@@ -45,6 +48,7 @@ impl Queryable<Text, Sqlite> for Testament {
     }
 }
 
+/// Model representing a book in the Bible.
 #[derive(Debug, Queryable, Serialize)]
 pub struct Book {
     pub id: i32,
@@ -53,6 +57,7 @@ pub struct Book {
     pub testament: Testament,
 }
 
+/// Model representing a Bible book's abbreviation.
 #[derive(Debug, Queryable)]
 pub struct BookAbbreviation {
     pub id: i32,
@@ -60,6 +65,7 @@ pub struct BookAbbreviation {
     pub abbreviation: String,
 }
 
+/// Model representing a full text search Bible verse.
 #[derive(Debug, Queryable, Serialize)]
 pub struct VerseFTS {
     pub book: i32,

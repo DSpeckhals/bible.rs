@@ -6,8 +6,11 @@ use url_serde;
 use db::models::{Book, Reference, Verse, VerseFTS};
 use db::BiblersError;
 
+/// Name used in the HTML title generator
 const NAME: &str = "Bible.rs";
 
+/// Array of books indexed by their order in the Bible, including the
+/// total number of chapters in that book.
 const BOOKS: [(&str, i32); 68] = [
     ("_", 0), // Dummy in order to just use the book id (1-indexed)
     ("Genesis", 50),
@@ -79,27 +82,31 @@ const BOOKS: [(&str, i32); 68] = [
     ("_", 0), // Dummy to avoid having to do a range check for the "next" book of Revelation
 ];
 
+/// Error payload for a view (HTML or JSON)
 #[derive(Serialize, Debug)]
 struct ErrorPayload {
     message: String,
 }
 
 impl ErrorPayload {
-    pub fn new(e: &BiblersError) -> Self {
+    /// Creates a new error payload from a (db.BiblersError.html)
+    pub fn from_error(e: &BiblersError) -> Self {
         Self {
             message: e.to_string(),
         }
     }
 
-    pub fn json(&self) -> String {
+    pub fn to_json(&self) -> String {
         serde_json::to_string_pretty(&self).unwrap()
     }
 }
 
+/// Generates a book URL for the given book.
 fn book_url(b: &str, req: &HttpRequest) -> Link {
     Link::new(req.url_for("book", &[b]).unwrap(), b.to_string())
 }
 
+/// Generates a chapter URL for the given book and chapter.
 fn chapter_url(b: &str, c: i32, req: &HttpRequest) -> Link {
     let chapter_string = c.to_string();
     Link::new(
@@ -109,6 +116,7 @@ fn chapter_url(b: &str, c: i32, req: &HttpRequest) -> Link {
     )
 }
 
+/// Generates a verse URL from the given book, chapter, and verse.
 fn verse_url(b: &str, c: i32, v: i32, req: &HttpRequest) -> Link {
     let chapter_string = c.to_string();
     let verse_string = v.to_string();
@@ -121,6 +129,7 @@ fn verse_url(b: &str, c: i32, v: i32, req: &HttpRequest) -> Link {
     )
 }
 
+/// Link representing a URL and label
 #[derive(Clone, Debug, Serialize)]
 pub struct Link {
     label: String,
@@ -135,6 +144,7 @@ impl Link {
     }
 }
 
+/// Links for the verses endpoint.
 #[derive(Serialize)]
 pub struct VersesLinks {
     books: Link,
@@ -146,6 +156,7 @@ pub struct VersesLinks {
 }
 
 impl VersesLinks {
+    /// Creates a new structure of verses links.
     pub fn new(book: &Book, reference: &Reference, req: &HttpRequest) -> Self {
         let bible_root = Link::new(req.url_for_static("bible").unwrap(), NAME.to_string());
         let book_link = Link::new(
@@ -223,6 +234,7 @@ impl VersesLinks {
     }
 }
 
+/// Represents a payload of verses (HTML or JSON).
 #[derive(Serialize)]
 pub struct VersesPayload {
     book: Book,
@@ -233,6 +245,7 @@ pub struct VersesPayload {
 }
 
 impl VersesPayload {
+    /// Creates a new payload for the verses page.
     pub fn new(
         (book, verses): (Book, Vec<Verse>),
         mut reference: Reference,
@@ -260,6 +273,7 @@ impl VersesPayload {
     }
 }
 
+/// Links for the books endpoint.
 #[derive(Serialize)]
 pub struct BookLinks {
     books: Link,
@@ -270,6 +284,7 @@ pub struct BookLinks {
 }
 
 impl BookLinks {
+    /// Creates a new structure of book links.
     pub fn new(book: &Book, chapters: &[i32], req: &HttpRequest) -> Self {
         Self {
             books: Link::new(req.url_for_static("bible").unwrap(), NAME.to_string()),
@@ -292,6 +307,7 @@ impl BookLinks {
     }
 }
 
+/// Represents a payload for the books endpoint (HTML or JSON).
 #[derive(Serialize)]
 pub struct BookPayload {
     book: Book,
@@ -300,6 +316,7 @@ pub struct BookPayload {
 }
 
 impl BookPayload {
+    /// Creates a new book payload.
     fn new((book, chapters): (Book, Vec<i32>), req: &HttpRequest) -> Self {
         let links = BookLinks::new(&book, &chapters, req);
         Self {
@@ -310,27 +327,32 @@ impl BookPayload {
     }
 }
 
+/// Payload for the "all books" endpoint (HTML or JSON).
 #[derive(Serialize)]
 pub struct AllBooksPayload {
     books: Vec<Book>,
 }
 
+/// A search result.
 #[derive(Serialize)]
 pub struct SearchResult {
     link: Link,
     text: String,
 }
 
+/// Payload for the search endpoint (HTML or JSON).
 #[derive(Serialize)]
 pub struct SearchResultPayload {
     matches: Vec<SearchResult>,
 }
 
 impl SearchResultPayload {
+    /// Creates an empty search result list.
     fn empty() -> Self {
         Self { matches: vec![] }
     }
 
+    /// Creates a new search result payload from full text search verses.
     fn from_verses_fts(from_db: Vec<(VerseFTS, Book)>, req: &HttpRequest) -> Self {
         let matches = from_db.into_iter().map(|(v, b)| SearchResult {
             link: verse_url(&b.name, v.chapter, v.verse, req),
@@ -342,6 +364,7 @@ impl SearchResultPayload {
         }
     }
 
+    /// Creates a new search result payload from standard verses.
     fn from_verses(from_db: (Book, Vec<Verse>), req: &HttpRequest) -> Self {
         let name = from_db.0.name;
         let matches = from_db.1.into_iter().map(|v| SearchResult {

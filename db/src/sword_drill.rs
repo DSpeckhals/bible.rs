@@ -13,6 +13,7 @@ sql_function!(
     fn highlight(table_name: Text, column_index: Integer, prefix: Text, suffix: Text) -> Text;
 );
 
+/// Looks up Bible verses for the given reference.
 pub fn verses<C>(
     reference: &Reference,
     format: &VerseFormat,
@@ -55,6 +56,14 @@ where
     .map_err(|e| BiblersError::DatabaseError { root_cause: e })
 }
 
+/// Looks up the Bible book with the given book name.
+///
+/// The inputted name argument can be either the cannonical book name
+/// or an acceptable abbreviation defined in the database's
+/// abbreviation table. The book is looked up in a case-insensitive
+/// manner.
+///
+/// If found, returns the resulting book and the list of its chapters.
 pub fn book<C>(book_name: &str, conn: &C) -> Result<(Book, Vec<i32>), BiblersError>
 where
     C: Connection<Backend = Sqlite>,
@@ -77,6 +86,7 @@ where
     Ok((book, chapters))
 }
 
+/// Gets all books in the Bible.
 pub fn all_books<C>(conn: &C) -> Result<Vec<Book>, BiblersError>
 where
     C: Connection<Backend = Sqlite>,
@@ -89,8 +99,20 @@ where
         .map_err(|e| BiblersError::DatabaseError { root_cause: e })
 }
 
+/// Max number of search results returned from the database.
 const SEARCH_RESULT_LIMIT: i64 = 15;
 
+/// Searches the database using the SQLite 3 full text search extension.
+///
+/// The inputted query string can be of two different formats:
+///
+/// - `test foo`: match each word as its own token, and use that
+/// to search.
+/// - `"test foo"`: match the entire phrase. For the King James
+/// version of the Bible, this is safe because there are no literal
+/// quotation marks. This cannot be assumed safe in other translations.
+///
+/// All characters other than alpha and quotations are stripped out.
 pub fn search<C>(query: &str, conn: &C) -> Result<Vec<(VerseFTS, Book)>, BiblersError>
 where
     C: Connection<Backend = Sqlite>,

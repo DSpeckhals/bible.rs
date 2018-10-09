@@ -6,6 +6,8 @@ use regex::{Match, Regex};
 
 use BiblersError;
 
+/// Model representing a Bible reference used to look up a
+/// passage in the database.
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Reference {
     pub book: String,
@@ -89,6 +91,7 @@ impl FromStr for Reference {
     }
 }
 
+/// Parse a [Match](regex.Match.html) into an i32.
 fn parse_num_match(m: Match) -> Result<i32, BiblersError> {
     m.as_str()
         .parse()
@@ -97,6 +100,7 @@ fn parse_num_match(m: Match) -> Result<i32, BiblersError> {
         })
 }
 
+/// Create an invalid reference error from the input.
 fn invalid_reference(s: &str) -> BiblersError {
     BiblersError::InvalidReference {
         reference: s.to_string(),
