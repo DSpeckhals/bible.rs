@@ -23,14 +23,21 @@ use diesel_migrations::{
     connection::MigrationConnection, run_pending_migrations_in_directory, RunMigrationsError,
 };
 
+/// Type of a pooled SQLite connection manager.
 pub type SqliteConnectionManager = r2d2::ConnectionManager<SqliteConnection>;
+
+/// Type for a SQLite connection pool.
 pub type SqliteConnectionPool = r2d2::Pool<SqliteConnectionManager>;
 
+/// Result formats for verses.
 pub enum VerseFormat {
+    /// Literal HTML.
     HTML,
+    /// Plain text with no special formatting.
     PlainText,
 }
 
+/// Error type that for the Bible.rs application.
 #[derive(Fail, Debug)]
 pub enum BiblersError {
     #[fail(display = "'{}' was not found.", book)]
@@ -58,6 +65,7 @@ pub enum BiblersError {
     TemplateError,
 }
 
+/// Builds a SQLite connection bool with the given URL.
 pub fn build_pool(db_url: &str) -> SqliteConnectionPool {
     r2d2::Pool::builder()
         .max_size(15)
@@ -65,10 +73,12 @@ pub fn build_pool(db_url: &str) -> SqliteConnectionPool {
         .unwrap()
 }
 
+/// Establishes a non-pooled SQLite connection.
 pub fn establish_connection(db_url: &str) -> SqliteConnection {
     SqliteConnection::establish(db_url).unwrap_or_else(|_| panic!("Error connecting to {}", db_url))
 }
 
+/// Run any pending Diesel migrations.
 pub fn run_migrations<Conn>(conn: &Conn) -> Result<(), BiblersError>
 where
     Conn: MigrationConnection,

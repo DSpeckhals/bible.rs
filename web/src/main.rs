@@ -31,11 +31,13 @@ use db::{build_pool, establish_connection, run_migrations, SqliteConnectionPool}
 
 use controllers::{api, view};
 
+/// Represents the [server state](actix_web.ServerState.html) for the application.
 pub struct ServerState {
     pub db: SqliteConnectionPool,
     pub template: Handlebars,
 }
 
+/// Registers the [Handlebars](handlebars.handlebars.html) templates for the application.
 fn register_templates() -> Result<Handlebars, Box<Error>> {
     let mut tpl = Handlebars::new();
     tpl.set_strict_mode(true);
@@ -86,9 +88,9 @@ fn main() -> Result<(), Box<Error>> {
                 r.get().f(view::book)
             }).resource("{reference:.+\\d}", |r| {
                 r.name("reference");
-                r.get().f(view::index)
+                r.get().f(view::reference)
             }).resource("api/search", |r| r.get().f(api::search))
-            .resource("api/{reference}.json", |r| r.get().f(api::index))
+            .resource("api/{reference}.json", |r| r.get().f(api::reference))
             .default_resource(|r| r.method(Method::GET).h(NormalizePath::default()))
             .middleware(middleware::Logger::default())
     }).bind("0.0.0.0:8080")
