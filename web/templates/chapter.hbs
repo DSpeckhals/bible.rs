@@ -34,19 +34,15 @@
     </article>
     <nav class="bottom-nav">
         {{~ #if reference.verses}}
-        <p>
-            <a href="{{links.chapter.url}}" title="{{links.chapter.label}}">
-                <img src="/static/img/unfold-more.svg" alt="View all of {{links.chapter.label}}" height="28" width="28">
-                View Full Chapter
-            </a>
-        </p>
+        <a href="{{links.chapter.url}}" title="{{links.chapter.label}}">
+            <img src="/static/img/unfold-more.svg" alt="View all of {{links.chapter.label}}" height="28" width="28">
+            View Full Chapter&nbsp;
+        </a>
         {{~ /if}}
-        <p>
-            <a href="{{links.book.url}}" title="{{links.book.label}}">
-                <img src="/static/img/book.svg" alt="Go to {{links.book.label}}" height="28" width="28">
-                {{links.book.label}}
-            </a>
-        </p>
+        <a href="{{links.book.url}}" title="{{links.book.label}}">
+            <img src="/static/img/book.svg" alt="Go to {{links.book.label}}" height="28" width="28">
+            {{links.book.label}}
+        </a>
     </nav>
 </div>
 {{~ /inline}}

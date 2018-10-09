@@ -1,0 +1,28 @@
+.about {
+    color: $mid-grey;
+    font-size: 1.1rem;
+    line-height: 1.5rem;
+
+    h2 {
+        font-size: 1.5rem;
+        margin: 1.5rem 0 1rem 0;
+    }
+
+    ul {
+        padding-left: 2rem;
+        list-style: initial;
+    }
+
+    a {
+        text-decoration: underline;
+        color: $input-focus;
+
+        &:hover {
+            color: $mid-grey;
+        }
+    }
+
+    em {
+        font-style: italic;
+    }
+}

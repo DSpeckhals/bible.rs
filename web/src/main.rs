@@ -78,7 +78,8 @@ fn main() -> Result<(), Box<Error>> {
             .handler(
                 "/static",
                 fs::StaticFiles::with_config("./web/dist", StaticFileConfig).unwrap(),
-            ).resource("/", |r| {
+            ).resource("about", |r| r.get().with(view::about))
+            .resource("/", |r| {
                 r.name("bible");
                 r.get().with(view::all_books)
             }).resource("search", |r| r.get().f(view::search))

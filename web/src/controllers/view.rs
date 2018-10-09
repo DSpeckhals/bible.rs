@@ -74,6 +74,28 @@ macro_rules! title_format {
     };
 }
 
+/// Represents an empty payload of data.
+///
+/// This is used to render Handlebars templates that don't
+/// need any context to render (e.g. the About page).
+#[derive(Serialize)]
+struct EmptyPayload;
+
+/// Handles HTTP requests for a list of all books.
+///
+/// Return an HTML page that lists all books in the Bible.
+pub fn about((state,): (State<ServerState>,)) -> Result<HttpResponse, HtmlBiblersError> {
+    let title = format!(title_format!(), "About");
+    let body = TemplatePayload::new(title, EmptyPayload)
+        .to_html("about", &state.template)
+        .map_err(|e| {
+            error!("{:?}", e);
+            BiblersError::TemplateError
+        })?;
+
+    Ok(HttpResponse::Ok().content_type("text/html").body(body))
+}
+
 /// Handles HTTP requests for a list of all books.
 ///
 /// Return an HTML page that lists all books in the Bible.
