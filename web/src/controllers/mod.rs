@@ -137,9 +137,15 @@ pub struct Link {
 
 impl Link {
     fn new(url: &Url, label: String) -> Self {
+        let url_string = if let Some(fragment) = url.fragment() {
+            format!("{}#{}", url.path(), fragment)
+        } else {
+            url.path().to_string()
+        };
+
         Self {
             label,
-            url: url.path().to_string(),
+            url: url_string,
         }
     }
 }
