@@ -1,7 +1,6 @@
 use actix_web::HttpRequest;
 use serde_json;
 use url::Url;
-use url_serde;
 
 use db::models::{Book, Reference, Verse, VerseFTS};
 use db::BiblersError;
@@ -103,14 +102,14 @@ impl ErrorPayload {
 
 /// Generates a book URL for the given book.
 fn book_url(b: &str, req: &HttpRequest) -> Link {
-    Link::new(req.url_for("book", &[b]).unwrap(), b.to_string())
+    Link::new(&req.url_for("book", &[b]).unwrap(), b.to_string())
 }
 
 /// Generates a chapter URL for the given book and chapter.
 fn chapter_url(b: &str, c: i32, req: &HttpRequest) -> Link {
     let chapter_string = c.to_string();
     Link::new(
-        req.url_for("reference", &[format!("{}/{}", b, chapter_string)])
+        &req.url_for("reference", &[format!("{}/{}", b, chapter_string)])
             .unwrap(),
         format!("{} {}", b, chapter_string),
     )
@@ -121,7 +120,7 @@ fn verse_url(b: &str, c: i32, v: i32, req: &HttpRequest) -> Link {
     let chapter_string = c.to_string();
     let verse_string = v.to_string();
     Link::new(
-        req.url_for(
+        &req.url_for(
             "reference",
             &[format!("{}/{}#v{}", b, chapter_string, verse_string)],
         ).unwrap(),
@@ -133,14 +132,15 @@ fn verse_url(b: &str, c: i32, v: i32, req: &HttpRequest) -> Link {
 #[derive(Clone, Debug, Serialize)]
 pub struct Link {
     label: String,
-
-    #[serde(with = "url_serde")]
-    url: Url,
+    url: String,
 }
 
 impl Link {
-    fn new(url: Url, label: String) -> Self {
-        Self { label, url }
+    fn new(url: &Url, label: String) -> Self {
+        Self {
+            label,
+            url: url.path().to_string(),
+        }
     }
 }
 
@@ -158,9 +158,9 @@ pub struct VersesLinks {
 impl VersesLinks {
     /// Creates a new structure of verses links.
     pub fn new(book: &Book, reference: &Reference, req: &HttpRequest) -> Self {
-        let bible_root = Link::new(req.url_for_static("bible").unwrap(), NAME.to_string());
+        let bible_root = Link::new(&req.url_for_static("bible").unwrap(), NAME.to_string());
         let book_link = Link::new(
-            req.url_for("book", &[&book.name]).unwrap(),
+            &req.url_for("book", &[&book.name]).unwrap(),
             book.name.to_string(),
         );
         let (chapter_link, curr_link) = {
@@ -287,10 +287,10 @@ impl BookLinks {
     /// Creates a new structure of book links.
     pub fn new(book: &Book, chapters: &[i32], req: &HttpRequest) -> Self {
         Self {
-            books: Link::new(req.url_for_static("bible").unwrap(), NAME.to_string()),
+            books: Link::new(&req.url_for_static("bible").unwrap(), NAME.to_string()),
             chapters: chapters
                 .iter()
-                .map(|c| chapter_url(&book.name, *c, req).url.into_string())
+                .map(|c| chapter_url(&book.name, *c, req).url)
                 .collect(),
             previous: if book.id != 1 {
                 Some(book_url(BOOKS[book.id as usize - 1].0, req))
