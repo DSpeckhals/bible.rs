@@ -95,14 +95,14 @@ impl FromStr for Reference {
 fn parse_num_match(m: Match) -> Result<i32, DbError> {
     m.as_str()
         .parse()
-        .map_err(|_| DbError::InvalidReferenceError {
+        .map_err(|_| DbError::InvalidReference {
             reference: m.as_str().to_string(),
         })
 }
 
 /// Create an invalid reference error from the input.
 fn invalid_reference(s: &str) -> DbError {
-    DbError::InvalidReferenceError {
+    DbError::InvalidReference {
         reference: s.to_string(),
     }
 }

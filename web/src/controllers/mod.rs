@@ -4,7 +4,7 @@ use url::Url;
 
 use db::models::{Book, Reference, Verse, VerseFTS};
 
-use error::BiblersError;
+use error::Error;
 
 /// Name used in the HTML title generator
 const NAME: &str = "Bible.rs";
@@ -89,8 +89,8 @@ struct ErrorPayload {
 }
 
 impl ErrorPayload {
-    /// Creates a new error payload from a (db.BiblersError.html)
-    pub fn from_error(e: &BiblersError) -> Self {
+    /// Creates a new error payload from a (db.Error.html)
+    pub fn from_error(e: &Error) -> Self {
         Self {
             message: e.to_string(),
         }

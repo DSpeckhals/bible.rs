@@ -53,7 +53,7 @@ where
             query.load(conn)
         }
     }.and_then(|verses| Ok((book, verses)))
-    .map_err(|e| DbError::DatabaseError { root_cause: e })
+    .map_err(|e| DbError::Other { cause: e })
 }
 
 /// Looks up the Bible book with the given book name.
@@ -76,10 +76,10 @@ where
         .filter(ba::abbreviation.eq(book_name.to_lowercase()))
         .first::<(Book, BookAbbreviation)>(conn)
         .map_err(|e| match e {
-            Error::NotFound => DbError::BookNotFoundError {
+            Error::NotFound => DbError::BookNotFound {
                 book: book_name.to_owned(),
             },
-            e => DbError::DatabaseError { root_cause: e },
+            e => DbError::Other { cause: e },
         })?;
     let chapters: Vec<i32> = (1..=book.chapter_count).collect();
 
@@ -96,7 +96,7 @@ where
     books
         .order_by(id)
         .load(conn)
-        .map_err(|e| DbError::DatabaseError { root_cause: e })
+        .map_err(|e| DbError::Other { cause: e })
 }
 
 /// Max number of search results returned from the database.
@@ -162,5 +162,5 @@ where
         .order_by(verses_fts::rank)
         .limit(SEARCH_RESULT_LIMIT)
         .load::<(VerseFTS, Book)>(conn)
-        .map_err(|e| DbError::DatabaseError { root_cause: e })
+        .map_err(|e| DbError::Other { cause: e })
 }

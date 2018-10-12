@@ -11,6 +11,7 @@ extern crate handlebars;
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
+extern crate num_cpus;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -31,7 +32,7 @@ use handlebars::Handlebars;
 
 use db::{build_pool, establish_connection, run_migrations};
 
-use actors::{DbExecutor};
+use actors::DbExecutor;
 use controllers::{api, view};
 
 /// Represents the [server state](actix_web.ServerState.html) for the application.
@@ -71,36 +72,34 @@ fn main() -> Result<(), Box<Error>> {
     run_migrations(&establish_connection(&url)).expect("Error running migrations");
 
     let sys = System::new("biblers");
-
-    let url_clone = url.clone();
-    let addr = SyncArbiter::start(10, move || {
-        DbExecutor(build_pool(&url_clone))
-    });
+    let addr = SyncArbiter::start(num_cpus::get(), move || DbExecutor(build_pool(&url)));
 
     server::new(move || {
         // Create handlebars registry
         let template = register_templates().unwrap();
 
         // Wire up the application
-        App::with_state(ServerState { db: addr.clone(), template })
-            .handler(
-                "/static",
-                fs::StaticFiles::with_config("./web/dist", StaticFileConfig).unwrap(),
-            ).resource("about", |r| r.get().with(view::about))
-            .resource("/", |r| {
-                r.name("bible");
-                r.get().with(view::all_books)
-            }).resource("search", |r| r.get().f(view::search))
-            .resource("{book}", |r| {
-                r.name("book");
-                r.get().f(view::book)
-            }).resource("{reference:.+\\d}", |r| {
-                r.name("reference");
-                r.get().f(view::reference)
-            }).resource("api/search", |r| r.get().f(api::search))
-            .resource("api/{reference}.json", |r| r.get().f(api::reference))
-            .default_resource(|r| r.method(Method::GET).h(NormalizePath::default()))
-            .middleware(middleware::Logger::default())
+        App::with_state(ServerState {
+            db: addr.clone(),
+            template,
+        }).handler(
+            "/static",
+            fs::StaticFiles::with_config("./web/dist", StaticFileConfig).unwrap(),
+        ).resource("about", |r| r.get().with(view::about))
+        .resource("/", |r| {
+            r.name("bible");
+            r.get().with(view::all_books)
+        }).resource("search", |r| r.get().f(view::search))
+        .resource("{book}", |r| {
+            r.name("book");
+            r.get().f(view::book)
+        }).resource("{reference:.+\\d}", |r| {
+            r.name("reference");
+            r.get().f(view::reference)
+        }).resource("api/search", |r| r.get().f(api::search))
+        .resource("api/{reference}.json", |r| r.get().f(api::reference))
+        .default_resource(|r| r.method(Method::GET).h(NormalizePath::default()))
+        .middleware(middleware::Logger::default())
     }).bind("0.0.0.0:8080")
     .unwrap()
     .start();
@@ -111,5 +110,5 @@ fn main() -> Result<(), Box<Error>> {
 }
 
 mod actors;
-mod error;
 mod controllers;
+mod error;

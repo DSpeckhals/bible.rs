@@ -1,4 +1,11 @@
-{{#*inline "page" ~}}
-{{message}}
-{{/inline ~}}
-{{~> base ~}}
+{{~ #*inline "page"}}
+<div class="container error">
+    <nav class="top-nav">
+        <a href="{{links.books.url}}">
+            <img src="/static/img/bible.rs.svg" alt="BIBLE.RS" height="100" width="100" class="logo">
+        </a>
+    </nav>
+    <p class="message">{{message}}</p>
+</div>
+{{/inline}}
+{{~> base}}

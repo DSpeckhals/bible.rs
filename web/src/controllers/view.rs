@@ -11,7 +11,7 @@ use db::VerseFormat;
 
 use actors::*;
 use controllers::{AllBooksPayload, BookPayload, ErrorPayload, SearchResultPayload, VersesPayload};
-use error::BiblersError;
+use error::Error;
 use ServerState;
 
 lazy_static! {
@@ -38,42 +38,47 @@ impl<T: Serialize> TemplatePayload<T> {
     }
 
     /// Convert the template payload to HTML
-    fn to_html(&self, tpl_name: &str, renderer: &Handlebars) -> Result<String, error::Error> {
-        renderer
-            .render(tpl_name, &self)
-            .map_err(error::ErrorInternalServerError)
+    fn to_html(&self, tpl_name: &str, renderer: &Handlebars) -> Result<String, Error> {
+        renderer.render(tpl_name, &self).map_err(|e| {
+            error!("{}", e);
+            Error::Template
+        })
     }
 }
 
 #[derive(Fail, Debug)]
 #[fail(display = "HTML Error")]
-pub struct HtmlBiblersError(BiblersError);
+pub struct HtmlError(Error);
 
-impl From<BiblersError> for HtmlBiblersError {
-    /// Transforms an HtmlBiblersError into an actix_web HTTP Response.
-    fn from(f: BiblersError) -> Self {
-        HtmlBiblersError(f)
+impl From<Error> for HtmlError {
+    /// Transforms an HtmlError into an actix_web HTTP Response.
+    fn from(f: Error) -> Self {
+        HtmlError(f)
     }
 }
 
-impl error::ResponseError for HtmlBiblersError {
+impl error::ResponseError for HtmlError {
     fn error_response(&self) -> HttpResponse {
         let body = &TemplatePayload::new("Error".to_string(), ErrorPayload::from_error(&self.0))
             .to_html("error", &ERR_TPL)
             .unwrap();
 
         match self.0 {
-            BiblersError::DbError | BiblersError::TemplateError => {
+            Error::Actix { .. } | Error::Db | Error::Template => {
                 HttpResponse::InternalServerError()
             }
+            Error::BookNotFound { .. } => HttpResponse::NotFound(),
+            Error::InvalidReference { .. } => HttpResponse::BadRequest(),
         }.content_type("text/html")
         .body(body)
     }
 }
 
-impl From<MailboxError> for HtmlBiblersError {
-    fn from(_: MailboxError) -> Self {
-        HtmlBiblersError(BiblersError::TemplateError)
+impl From<MailboxError> for HtmlError {
+    fn from(e: MailboxError) -> Self {
+        HtmlError(Error::Actix {
+            cause: e.to_string(),
+        })
     }
 }
 
@@ -83,7 +88,7 @@ macro_rules! title_format {
     };
 }
 
-type AsyncResponse = Box<Future<Item = HttpResponse, Error = HtmlBiblersError>>;
+type AsyncResponse = Box<Future<Item = HttpResponse, Error = HtmlError>>;
 
 /// Represents an empty payload of data.
 ///
@@ -95,14 +100,9 @@ struct EmptyPayload;
 /// Handles HTTP requests for a list of all books.
 ///
 /// Return an HTML page that lists all books in the Bible.
-pub fn about((state,): (State<ServerState>,)) -> Result<HttpResponse, HtmlBiblersError> {
+pub fn about((state,): (State<ServerState>,)) -> Result<HttpResponse, HtmlError> {
     let title = format!(title_format!(), "About");
-    let body = TemplatePayload::new(title, EmptyPayload)
-        .to_html("about", &state.template)
-        .map_err(|e| {
-            error!("{:?}", e);
-            BiblersError::TemplateError
-        })?;
+    let body = TemplatePayload::new(title, EmptyPayload).to_html("about", &state.template)?;
 
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
@@ -119,15 +119,11 @@ pub fn all_books((state,): (State<ServerState>,)) -> AsyncResponse {
             Ok(books) => {
                 let title = format!(title_format!(), "King James Version");
                 let body = TemplatePayload::new(title, AllBooksPayload { books })
-                    .to_html("all-books", &state.template)
-                    .map_err(|e| {
-                        error!("{:?}", e);
-                        BiblersError::TemplateError
-                    })?;
+                    .to_html("all-books", &state.template)?;
 
                 Ok(HttpResponse::Ok().content_type("text/html").body(body))
             }
-            Err(_) => Err(HtmlBiblersError(BiblersError::DbError)),
+            Err(e) => Err(HtmlError(e)),
         }).responder()
 }
 
@@ -147,15 +143,11 @@ pub fn book(req: &HttpRequest<ServerState>) -> AsyncResponse {
         Ok(result) => {
             let title = format!(title_format!(), result.0.name);
             let body = TemplatePayload::new(title, BookPayload::new(result, &req.drop_state()))
-                .to_html("book", &req.state().template)
-                .map_err(|e| {
-                    error!("{:?}", e);
-                    BiblersError::TemplateError
-                })?;
+                .to_html("book", &req.state().template)?;
 
             Ok(HttpResponse::Ok().content_type("text/html").body(body))
         }
-        Err(_) => Err(HtmlBiblersError(BiblersError::DbError)),
+        Err(e) => Err(HtmlError(e)),
     }).responder()
 }
 
@@ -167,11 +159,14 @@ pub fn book(req: &HttpRequest<ServerState>) -> AsyncResponse {
 pub fn reference(req: &HttpRequest<ServerState>) -> AsyncResponse {
     let info = Path::<(String,)>::extract(req).unwrap();
     let raw_reference = info.0.replace("/", ".");
-    let reference = raw_reference.parse::<Reference>();
-    if reference.is_err() {
-        return Box::new(err(HtmlBiblersError(BiblersError::DbError)));
-    }
-    let reference = reference.unwrap();
+    let reference = match raw_reference.parse::<Reference>() {
+        Ok(r) => r,
+        Err(_) => {
+            return Box::new(err(HtmlError(Error::InvalidReference {
+                reference: raw_reference,
+            })))
+        }
+    };
 
     let db = &req.state().db;
     let req = req.to_owned();
@@ -184,19 +179,17 @@ pub fn reference(req: &HttpRequest<ServerState>) -> AsyncResponse {
             let payload = VersesPayload::new(result, reference, &req.drop_state());
 
             if payload.verses.is_empty() {
-                Err(BiblersError::DbError)?;
+                Err(Error::InvalidReference {
+                    reference: raw_reference,
+                })?;
             }
 
             let title = format!(title_format!(), payload.reference.to_string());
-            let body = TemplatePayload::new(title, payload)
-                .to_html("chapter", &req.state().template)
-                .map_err(|e| {
-                    error!("{:?}", e);
-                    BiblersError::TemplateError
-                })?;
+            let body =
+                TemplatePayload::new(title, payload).to_html("chapter", &req.state().template)?;
             Ok(HttpResponse::Ok().content_type("text/html").body(body))
         }
-        Err(_) => Err(HtmlBiblersError(BiblersError::DbError)),
+        Err(e) => Err(HtmlError(e)),
     }).responder()
 }
 
@@ -206,29 +199,29 @@ pub fn reference(req: &HttpRequest<ServerState>) -> AsyncResponse {
 /// parameter.
 pub fn search(req: &HttpRequest<ServerState>) -> AsyncResponse {
     let params = req.query();
-    let query = params.get("q");
-    if query.is_none() {
-        return Box::new(err(HtmlBiblersError(BiblersError::DbError)));
-    }
-    let query = query.unwrap().to_owned();
+    let query = match params.get("q") {
+        Some(q) => q,
+        None => {
+            return Box::new(err(HtmlError(Error::InvalidReference {
+                reference: "".to_string(),
+            })))
+        }
+    };
     let title = format!(title_format!(), format!("Results for '{}'", query));
 
     let db = &req.state().db;
     let req = req.to_owned();
-    db.send(SearchMessage { query })
-        .from_err()
-        .and_then(move |res| match res {
-            Ok(result) => {
-                let body = TemplatePayload::new(
-                    title,
-                    SearchResultPayload::from_verses_fts(result, &req.drop_state()),
-                ).to_html("search-results", &req.state().template)
-                .map_err(|e| {
-                    error!("{:?}", e);
-                    BiblersError::TemplateError
-                })?;
-                Ok(HttpResponse::Ok().content_type("text/html").body(body))
-            }
-            Err(_) => Err(HtmlBiblersError(BiblersError::DbError)),
-        }).responder()
+    db.send(SearchMessage {
+        query: query.to_owned(),
+    }).from_err()
+    .and_then(move |res| match res {
+        Ok(result) => {
+            let body = TemplatePayload::new(
+                title,
+                SearchResultPayload::from_verses_fts(result, &req.drop_state()),
+            ).to_html("search-results", &req.state().template)?;
+            Ok(HttpResponse::Ok().content_type("text/html").body(body))
+        }
+        Err(e) => Err(HtmlError(e)),
+    }).responder()
 }

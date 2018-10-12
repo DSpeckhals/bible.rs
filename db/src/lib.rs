@@ -29,9 +29,6 @@ pub type SqliteConnectionManager = r2d2::ConnectionManager<SqliteConnection>;
 /// Type for a SQLite connection pool.
 pub type SqliteConnectionPool = r2d2::Pool<SqliteConnectionManager>;
 
-// Export the SqliteConnection
-pub use diesel::sqlite::SqliteConnection;
-
 /// Result formats for verses.
 pub enum VerseFormat {
     /// Literal HTML.
@@ -43,25 +40,25 @@ pub enum VerseFormat {
 #[derive(Fail, Debug)]
 pub enum DbError {
     #[fail(display = "'{}' was not found.", book)]
-    BookNotFoundError { book: String },
+    BookNotFound { book: String },
 
     #[fail(display = "There was a connection pool error.",)]
-    ConnectionPoolError { root_cause: String },
+    ConnectionPool { cause: String },
 
     #[fail(
         display = "There was a database error. Root cause: {:?}.",
-        root_cause
+        cause
     )]
-    DatabaseError { root_cause: Error },
+    Other { cause: Error },
 
     #[fail(
         display = "There was a database migration error. Root cause: {:?}.",
-        root_cause
+        cause
     )]
-    DatabaseMigrationError { root_cause: RunMigrationsError },
+    Migration { cause: RunMigrationsError },
 
     #[fail(display = "'{}' is not a valid Bible reference.", reference)]
-    InvalidReferenceError { reference: String },
+    InvalidReference { reference: String },
 }
 
 /// Builds a SQLite connection bool with the given URL.
@@ -84,7 +81,7 @@ where
 {
     let dir = Path::new("./db/migrations");
     run_pending_migrations_in_directory(conn, &dir, &mut stdout())
-        .map_err(|e| DbError::DatabaseMigrationError { root_cause: e })
+        .map_err(|e| DbError::Migration { cause: e })
 }
 
 pub mod models;

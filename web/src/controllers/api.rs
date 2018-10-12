@@ -9,45 +9,52 @@ use db::{DbError, VerseFormat};
 
 use actors::{SearchMessage, VersesMessage};
 use controllers::{ErrorPayload, SearchResultPayload, VersesPayload};
-use error::BiblersError;
+use error::Error;
 use ServerState;
 
 #[derive(Fail, Debug)]
 #[fail(display = "Json Error")]
-pub struct JsonBiblersError(BiblersError);
+pub struct JsonError(Error);
 
-impl From<BiblersError> for JsonBiblersError {
-    fn from(f: BiblersError) -> Self {
-        JsonBiblersError(f)
+impl From<Error> for JsonError {
+    fn from(f: Error) -> Self {
+        JsonError(f)
     }
 }
 
-impl error::ResponseError for JsonBiblersError {
+impl From<DbError> for JsonError {
+    fn from(_: DbError) -> Self {
+        JsonError(Error::Db)
+    }
+}
+
+impl error::ResponseError for JsonError {
     fn error_response(&self) -> HttpResponse {
         match self.0 {
-            BiblersError::TemplateError | BiblersError::DbError => {
+            Error::Actix { .. } | Error::Db | Error::Template => {
                 HttpResponse::InternalServerError()
             }
+            Error::BookNotFound { .. } => HttpResponse::NotFound(),
+            Error::InvalidReference { .. } => HttpResponse::BadRequest(),
         }.body(ErrorPayload::from_error(&self.0).to_json())
     }
 }
 
-impl From<MailboxError> for JsonBiblersError {
+impl From<MailboxError> for JsonError {
     fn from(_: MailboxError) -> Self {
-        JsonBiblersError(BiblersError::TemplateError)
+        JsonError(Error::Db)
     }
 }
 
 pub fn reference(
     req: &HttpRequest<ServerState>,
-) -> Box<Future<Item = Json<VersesPayload>, Error = JsonBiblersError>> {
+) -> Box<Future<Item = Json<VersesPayload>, Error = JsonError>> {
     let db = &req.state().db;
     let info = Path::<(String,)>::extract(req).unwrap();
-    let reference = info.0.parse::<Reference>();
-    if reference.is_err() {
-        return Box::new(err(JsonBiblersError::from(BiblersError::DbError)));
-    }
-    let reference = reference.unwrap();
+    let reference = match info.0.parse::<Reference>() {
+        Ok(r) => r,
+        Err(e) => return Box::new(err(JsonError::from(e))),
+    };
 
     let req = req.to_owned();
     db.send(VersesMessage {
@@ -59,13 +66,13 @@ pub fn reference(
             let payload = VersesPayload::new(result, reference, &req.drop_state());
             Ok(Json(payload))
         }
-        Err(_) => Err(JsonBiblersError::from(BiblersError::DbError)),
+        Err(e) => Err(JsonError::from(e)),
     }).responder()
 }
 
 pub fn search(
     req: &HttpRequest<ServerState>,
-) -> Box<Future<Item = Json<SearchResultPayload>, Error = JsonBiblersError>> {
+) -> Box<Future<Item = Json<SearchResultPayload>, Error = JsonError>> {
     let db = &req.state().db;
     req.query()
         .get("q")
@@ -82,10 +89,8 @@ pub fn search(
                         results,
                         &req.drop_state(),
                     ))),
-                    Err(DbError::BookNotFoundError { .. }) => {
-                        Ok(Json(SearchResultPayload::empty()))
-                    }
-                    Err(_) => Err(JsonBiblersError::from(BiblersError::DbError)),
+                    Err(Error::BookNotFound { .. }) => Ok(Json(SearchResultPayload::empty())),
+                    Err(e) => Err(JsonError::from(e)),
                 }).responder()
             // Otherwise look for word matches
             } else {
@@ -98,7 +103,7 @@ pub fn search(
                         results,
                         &req.drop_state(),
                     ))),
-                    Err(_) => Err(JsonBiblersError::from(BiblersError::DbError)),
+                    Err(e) => Err(JsonError::from(e)),
                 }).responder()
             }
         })
