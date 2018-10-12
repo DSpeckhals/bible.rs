@@ -7,9 +7,9 @@ use handlebars::Handlebars;
 use serde::Serialize;
 
 use db::models::Reference;
-use db::{sword_drill, VerseFormat};
+use db::VerseFormat;
 
-use actors::VersesMessage;
+use actors::*;
 use controllers::{AllBooksPayload, BookPayload, ErrorPayload, SearchResultPayload, VersesPayload};
 use error::BiblersError;
 use ServerState;
@@ -83,6 +83,8 @@ macro_rules! title_format {
     };
 }
 
+type AsyncResponse = Box<Future<Item = HttpResponse, Error = HtmlBiblersError>>;
+
 /// Represents an empty payload of data.
 ///
 /// This is used to render Handlebars templates that don't
@@ -108,39 +110,53 @@ pub fn about((state,): (State<ServerState>,)) -> Result<HttpResponse, HtmlBibler
 /// Handles HTTP requests for a list of all books.
 ///
 /// Return an HTML page that lists all books in the Bible.
-pub fn all_books((state,): (State<ServerState>,)) -> Result<HttpResponse, HtmlBiblersError> {
-    let conn = state.db.get().map_err(|_| BiblersError::DbError)?;
+pub fn all_books((state,): (State<ServerState>,)) -> AsyncResponse {
+    state
+        .db
+        .send(AllBooksMessage)
+        .from_err()
+        .and_then(move |res| match res {
+            Ok(books) => {
+                let title = format!(title_format!(), "King James Version");
+                let body = TemplatePayload::new(title, AllBooksPayload { books })
+                    .to_html("all-books", &state.template)
+                    .map_err(|e| {
+                        error!("{:?}", e);
+                        BiblersError::TemplateError
+                    })?;
 
-    let books = sword_drill::all_books(&*conn).map_err(|_| BiblersError::DbError)?;
-    let title = format!(title_format!(), "King James Version");
-    let body = TemplatePayload::new(title, AllBooksPayload { books })
-        .to_html("all-books", &state.template)
-        .map_err(|e| {
-            error!("{:?}", e);
-            BiblersError::TemplateError
-        })?;
-
-    Ok(HttpResponse::Ok().content_type("text/html").body(body))
+                Ok(HttpResponse::Ok().content_type("text/html").body(body))
+            }
+            Err(_) => Err(HtmlBiblersError(BiblersError::DbError)),
+        }).responder()
 }
 
 /// Handles HTTP requests for a book (e.g. /John)
 ///
 /// Assume the path parameter is a Bible book, and get an HTML response
 /// that has book metadata and a list of chapters.
-pub fn book(req: &HttpRequest<ServerState>) -> Result<HttpResponse, HtmlBiblersError> {
+pub fn book(req: &HttpRequest<ServerState>) -> AsyncResponse {
     let info = Path::<(String,)>::extract(req).unwrap();
-    let conn = req.state().db.get().map_err(|_| BiblersError::DbError)?;
+    let db = &req.state().db;
 
-    let result = sword_drill::book(&info.0, &*conn).map_err(|_| BiblersError::DbError)?;
-    let title = format!(title_format!(), result.0.name);
-    let body = TemplatePayload::new(title, BookPayload::new(result, &req.drop_state()))
-        .to_html("book", &req.state().template)
-        .map_err(|e| {
-            error!("{:?}", e);
-            BiblersError::TemplateError
-        })?;
+    let req = req.to_owned();
+    db.send(BookMessage {
+        name: info.0.to_owned(),
+    }).from_err()
+    .and_then(move |res| match res {
+        Ok(result) => {
+            let title = format!(title_format!(), result.0.name);
+            let body = TemplatePayload::new(title, BookPayload::new(result, &req.drop_state()))
+                .to_html("book", &req.state().template)
+                .map_err(|e| {
+                    error!("{:?}", e);
+                    BiblersError::TemplateError
+                })?;
 
-    Ok(HttpResponse::Ok().content_type("text/html").body(body))
+            Ok(HttpResponse::Ok().content_type("text/html").body(body))
+        }
+        Err(_) => Err(HtmlBiblersError(BiblersError::DbError)),
+    }).responder()
 }
 
 /// Handles HTTP requests for references (e.g. /John/1/1).
@@ -148,9 +164,7 @@ pub fn book(req: &HttpRequest<ServerState>) -> Result<HttpResponse, HtmlBiblersE
 /// Parse the URL path for a string that would indicate a reference.
 /// If the path parses to a reference, then it is passed to the database
 /// layer and looked up, returning an HTTP response with the verse body.
-pub fn reference(
-    req: &HttpRequest<ServerState>,
-) -> Box<Future<Item = HttpResponse, Error = HtmlBiblersError>> {
+pub fn reference(req: &HttpRequest<ServerState>) -> AsyncResponse {
     let info = Path::<(String,)>::extract(req).unwrap();
     let raw_reference = info.0.replace("/", ".");
     let reference = raw_reference.parse::<Reference>();
@@ -159,10 +173,10 @@ pub fn reference(
     }
     let reference = reference.unwrap();
 
-    let db1 = &req.state().db1;
+    let db = &req.state().db;
     let req = req.to_owned();
-    db1.send(VersesMessage {
-        reference: reference.clone(),
+    db.send(VersesMessage {
+        reference: reference.to_owned(),
         format: VerseFormat::HTML,
     }).from_err()
     .and_then(move |res| match res {
@@ -182,7 +196,7 @@ pub fn reference(
                 })?;
             Ok(HttpResponse::Ok().content_type("text/html").body(body))
         }
-        Err(_) => Ok(HttpResponse::InternalServerError().into()),
+        Err(_) => Err(HtmlBiblersError(BiblersError::DbError)),
     }).responder()
 }
 
@@ -190,20 +204,31 @@ pub fn reference(
 ///
 /// Return an HTML page with search results based on the `q` query
 /// parameter.
-pub fn search(req: &HttpRequest<ServerState>) -> Result<HttpResponse, HtmlBiblersError> {
-    let conn = req.state().db.get().map_err(|_| BiblersError::DbError)?;
+pub fn search(req: &HttpRequest<ServerState>) -> AsyncResponse {
     let params = req.query();
-    let q = params.get("q").ok_or(BiblersError::TemplateError)?;
-    let title = format!(title_format!(), format!("Results for '{}'", q));
+    let query = params.get("q");
+    if query.is_none() {
+        return Box::new(err(HtmlBiblersError(BiblersError::DbError)));
+    }
+    let query = query.unwrap().to_owned();
+    let title = format!(title_format!(), format!("Results for '{}'", query));
 
-    let results = sword_drill::search(q, &conn).map_err(|_| BiblersError::DbError)?;
-    let body = TemplatePayload::new(
-        title,
-        SearchResultPayload::from_verses_fts(results, &req.drop_state()),
-    ).to_html("search-results", &req.state().template)
-    .map_err(|e| {
-        error!("{:?}", e);
-        BiblersError::TemplateError
-    })?;
-    Ok(HttpResponse::Ok().content_type("text/html").body(body))
+    let db = &req.state().db;
+    let req = req.to_owned();
+    db.send(SearchMessage { query })
+        .from_err()
+        .and_then(move |res| match res {
+            Ok(result) => {
+                let body = TemplatePayload::new(
+                    title,
+                    SearchResultPayload::from_verses_fts(result, &req.drop_state()),
+                ).to_html("search-results", &req.state().template)
+                .map_err(|e| {
+                    error!("{:?}", e);
+                    BiblersError::TemplateError
+                })?;
+                Ok(HttpResponse::Ok().content_type("text/html").body(body))
+            }
+            Err(_) => Err(HtmlBiblersError(BiblersError::DbError)),
+        }).responder()
 }

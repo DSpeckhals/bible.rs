@@ -29,15 +29,14 @@ use actix_web::{
 use dotenv::dotenv;
 use handlebars::Handlebars;
 
-use db::{build_pool, establish_connection, run_migrations, SqliteConnectionPool};
+use db::{build_pool, establish_connection, run_migrations};
 
 use actors::{DbExecutor};
 use controllers::{api, view};
 
 /// Represents the [server state](actix_web.ServerState.html) for the application.
 pub struct ServerState {
-    pub db1: Addr<DbExecutor>,
-    pub db: SqliteConnectionPool,
+    pub db: Addr<DbExecutor>,
     pub template: Handlebars,
 }
 
@@ -71,7 +70,7 @@ fn main() -> Result<(), Box<Error>> {
     // Run DB migrations for a new SQLite database
     run_migrations(&establish_connection(&url)).expect("Error running migrations");
 
-    let sys = System::new("biblers-db-arbitors");
+    let sys = System::new("biblers");
 
     let url_clone = url.clone();
     let addr = SyncArbiter::start(10, move || {
@@ -82,11 +81,8 @@ fn main() -> Result<(), Box<Error>> {
         // Create handlebars registry
         let template = register_templates().unwrap();
 
-        // Create a connection pool
-        let db = build_pool(&url);
-
         // Wire up the application
-        App::with_state(ServerState { db1: addr.clone(), db, template })
+        App::with_state(ServerState { db: addr.clone(), template })
             .handler(
                 "/static",
                 fs::StaticFiles::with_config("./web/dist", StaticFileConfig).unwrap(),
@@ -107,7 +103,7 @@ fn main() -> Result<(), Box<Error>> {
             .middleware(middleware::Logger::default())
     }).bind("0.0.0.0:8080")
     .unwrap()
-    .run();
+    .start();
 
     let _ = sys.run();
 
