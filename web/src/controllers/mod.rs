@@ -3,7 +3,8 @@ use serde_json;
 use url::Url;
 
 use db::models::{Book, Reference, Verse, VerseFTS};
-use db::BiblersError;
+
+use error::BiblersError;
 
 /// Name used in the HTML title generator
 const NAME: &str = "Bible.rs";

@@ -1,9 +1,11 @@
+extern crate actix;
 extern crate actix_web;
 extern crate db;
 extern crate dotenv;
 extern crate env_logger;
 #[macro_use]
 extern crate failure;
+extern crate futures;
 extern crate handlebars;
 #[macro_use]
 extern crate lazy_static;
@@ -18,6 +20,7 @@ extern crate url;
 use std::env;
 use std::error::Error;
 
+use actix::{Addr, SyncArbiter, System};
 use actix_web::{
     fs,
     http::{Method, NormalizePath},
@@ -28,10 +31,12 @@ use handlebars::Handlebars;
 
 use db::{build_pool, establish_connection, run_migrations, SqliteConnectionPool};
 
+use actors::{DbExecutor};
 use controllers::{api, view};
 
 /// Represents the [server state](actix_web.ServerState.html) for the application.
 pub struct ServerState {
+    pub db1: Addr<DbExecutor>,
     pub db: SqliteConnectionPool,
     pub template: Handlebars,
 }
@@ -66,6 +71,13 @@ fn main() -> Result<(), Box<Error>> {
     // Run DB migrations for a new SQLite database
     run_migrations(&establish_connection(&url)).expect("Error running migrations");
 
+    let sys = System::new("biblers-db-arbitors");
+
+    let url_clone = url.clone();
+    let addr = SyncArbiter::start(10, move || {
+        DbExecutor(build_pool(&url_clone))
+    });
+
     server::new(move || {
         // Create handlebars registry
         let template = register_templates().unwrap();
@@ -74,7 +86,7 @@ fn main() -> Result<(), Box<Error>> {
         let db = build_pool(&url);
 
         // Wire up the application
-        App::with_state(ServerState { db, template })
+        App::with_state(ServerState { db1: addr.clone(), db, template })
             .handler(
                 "/static",
                 fs::StaticFiles::with_config("./web/dist", StaticFileConfig).unwrap(),
@@ -97,7 +109,11 @@ fn main() -> Result<(), Box<Error>> {
     .unwrap()
     .run();
 
+    let _ = sys.run();
+
     Ok(())
 }
 
+mod actors;
+mod error;
 mod controllers;

@@ -4,9 +4,10 @@ use actix_web::{error, FromRequest, HttpRequest, HttpResponse, Json, Path, Resul
 
 use db::models::Reference;
 use db::sword_drill;
-use db::{BiblersError, VerseFormat};
+use db::{DbError, VerseFormat};
 
 use controllers::{ErrorPayload, SearchResultPayload, VersesPayload};
+use error::BiblersError;
 use ServerState;
 
 #[derive(Fail, Debug)]
@@ -22,28 +23,21 @@ impl From<BiblersError> for JsonBiblersError {
 impl error::ResponseError for JsonBiblersError {
     fn error_response(&self) -> HttpResponse {
         match self.0 {
-            BiblersError::BookNotFound { .. } => HttpResponse::NotFound(),
-            BiblersError::ConnectionPoolError { .. } => HttpResponse::InternalServerError(),
-            BiblersError::DatabaseError { .. } => HttpResponse::InternalServerError(),
-            BiblersError::DatabaseMigrationError { .. } => HttpResponse::InternalServerError(),
-            BiblersError::InvalidReference { .. } => HttpResponse::BadRequest(),
-            BiblersError::TemplateError => HttpResponse::InternalServerError(),
+            BiblersError::TemplateError | BiblersError::DbError => {
+                HttpResponse::InternalServerError()
+            }
         }.body(ErrorPayload::from_error(&self.0).to_json())
     }
 }
 
 pub fn reference(req: &HttpRequest<ServerState>) -> Result<Json<VersesPayload>, JsonBiblersError> {
     let info = Path::<(String,)>::extract(req).unwrap();
-    let conn = req
-        .state()
-        .db
-        .get()
-        .map_err(|e| BiblersError::ConnectionPoolError {
-            root_cause: e.to_string(),
-        })?;
-    let reference: Reference = info.0.parse()?;
+    let conn = req.state().db.get().map_err(|_| BiblersError::DbError)?;
+    let reference: Reference = info.0.parse().map_err(|_| BiblersError::DbError)?;
+
     let payload = VersesPayload::new(
-        sword_drill::verses(&reference, &VerseFormat::PlainText, &*conn)?,
+        sword_drill::verses(&reference, &VerseFormat::PlainText, &*conn)
+            .map_err(|_| BiblersError::DbError)?,
         reference,
         &req.drop_state(),
     );
@@ -53,13 +47,7 @@ pub fn reference(req: &HttpRequest<ServerState>) -> Result<Json<VersesPayload>, 
 pub fn search(
     req: &HttpRequest<ServerState>,
 ) -> Result<Json<SearchResultPayload>, JsonBiblersError> {
-    let conn = req
-        .state()
-        .db
-        .get()
-        .map_err(|e| BiblersError::ConnectionPoolError {
-            root_cause: e.to_string(),
-        })?;
+    let conn = req.state().db.get().map_err(|_| BiblersError::DbError)?;
 
     req.query()
         .get("q")
@@ -71,16 +59,15 @@ pub fn search(
                         results,
                         &req.drop_state(),
                     ))),
-                    Err(BiblersError::BookNotFound { .. })
-                    | Err(BiblersError::InvalidReference { .. }) => {
+                    Err(DbError::BookNotFoundError { .. }) => {
                         Ok(Json(SearchResultPayload::empty()))
                     }
-                    Err(e) => Err(JsonBiblersError::from(e)),
+                    Err(_) => Err(JsonBiblersError::from(BiblersError::DbError)),
                 }
             // Otherwise look for word matches
             } else {
                 Ok(Json(SearchResultPayload::from_verses_fts(
-                    sword_drill::search(q, &conn)?,
+                    sword_drill::search(q, &conn).map_err(|_| BiblersError::DbError)?,
                     &req.drop_state(),
                 )))
             }
