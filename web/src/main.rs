@@ -1,14 +1,17 @@
+extern crate actix;
 extern crate actix_web;
 extern crate db;
 extern crate dotenv;
 extern crate env_logger;
 #[macro_use]
 extern crate failure;
+extern crate futures;
 extern crate handlebars;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
+extern crate num_cpus;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -18,6 +21,7 @@ extern crate url;
 use std::env;
 use std::error::Error;
 
+use actix::{Addr, SyncArbiter, System};
 use actix_web::{
     fs,
     http::{Method, NormalizePath},
@@ -26,13 +30,14 @@ use actix_web::{
 use dotenv::dotenv;
 use handlebars::Handlebars;
 
-use db::{build_pool, establish_connection, run_migrations, SqliteConnectionPool};
+use db::{build_pool, establish_connection, run_migrations};
 
+use actors::DbExecutor;
 use controllers::{api, view};
 
 /// Represents the [server state](actix_web.ServerState.html) for the application.
 pub struct ServerState {
-    pub db: SqliteConnectionPool,
+    pub db: Addr<DbExecutor>,
     pub template: Handlebars,
 }
 
@@ -66,38 +71,44 @@ fn main() -> Result<(), Box<Error>> {
     // Run DB migrations for a new SQLite database
     run_migrations(&establish_connection(&url)).expect("Error running migrations");
 
+    let sys = System::new("biblers");
+    let addr = SyncArbiter::start(num_cpus::get(), move || DbExecutor(build_pool(&url)));
+
     server::new(move || {
         // Create handlebars registry
         let template = register_templates().unwrap();
 
-        // Create a connection pool
-        let db = build_pool(&url);
-
         // Wire up the application
-        App::with_state(ServerState { db, template })
-            .handler(
-                "/static",
-                fs::StaticFiles::with_config("./web/dist", StaticFileConfig).unwrap(),
-            ).resource("about", |r| r.get().with(view::about))
-            .resource("/", |r| {
-                r.name("bible");
-                r.get().with(view::all_books)
-            }).resource("search", |r| r.get().f(view::search))
-            .resource("{book}", |r| {
-                r.name("book");
-                r.get().f(view::book)
-            }).resource("{reference:.+\\d}", |r| {
-                r.name("reference");
-                r.get().f(view::reference)
-            }).resource("api/search", |r| r.get().f(api::search))
-            .resource("api/{reference}.json", |r| r.get().f(api::reference))
-            .default_resource(|r| r.method(Method::GET).h(NormalizePath::default()))
-            .middleware(middleware::Logger::default())
+        App::with_state(ServerState {
+            db: addr.clone(),
+            template,
+        }).handler(
+            "/static",
+            fs::StaticFiles::with_config("./web/dist", StaticFileConfig).unwrap(),
+        ).resource("about", |r| r.get().with(view::about))
+        .resource("/", |r| {
+            r.name("bible");
+            r.get().with(view::all_books)
+        }).resource("search", |r| r.get().f(view::search))
+        .resource("{book}", |r| {
+            r.name("book");
+            r.get().f(view::book)
+        }).resource("{reference:.+\\d}", |r| {
+            r.name("reference");
+            r.get().f(view::reference)
+        }).resource("api/search", |r| r.get().f(api::search))
+        .resource("api/{reference}.json", |r| r.get().f(api::reference))
+        .default_resource(|r| r.method(Method::GET).h(NormalizePath::default()))
+        .middleware(middleware::Logger::default())
     }).bind("0.0.0.0:8080")
     .unwrap()
-    .run();
+    .start();
+
+    let _ = sys.run();
 
     Ok(())
 }
 
+mod actors;
 mod controllers;
+mod error;

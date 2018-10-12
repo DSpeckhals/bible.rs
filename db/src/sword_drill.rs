@@ -5,7 +5,7 @@ use diesel::sqlite::Sqlite;
 use regex::Regex;
 
 use models::*;
-use {BiblersError, VerseFormat};
+use {DbError, VerseFormat};
 
 sql_function!(
     /// Represents the [`highlight` function](https://sqlite.org/fts5.html#the_highlight_function)
@@ -18,7 +18,7 @@ pub fn verses<C>(
     reference: &Reference,
     format: &VerseFormat,
     conn: &C,
-) -> Result<(Book, Vec<Verse>), BiblersError>
+) -> Result<(Book, Vec<Verse>), DbError>
 where
     C: Connection<Backend = Sqlite>,
 {
@@ -53,7 +53,7 @@ where
             query.load(conn)
         }
     }.and_then(|verses| Ok((book, verses)))
-    .map_err(|e| BiblersError::DatabaseError { root_cause: e })
+    .map_err(|e| DbError::Other { cause: e })
 }
 
 /// Looks up the Bible book with the given book name.
@@ -64,7 +64,7 @@ where
 /// manner.
 ///
 /// If found, returns the resulting book and the list of its chapters.
-pub fn book<C>(book_name: &str, conn: &C) -> Result<(Book, Vec<i32>), BiblersError>
+pub fn book<C>(book_name: &str, conn: &C) -> Result<(Book, Vec<i32>), DbError>
 where
     C: Connection<Backend = Sqlite>,
 {
@@ -76,10 +76,10 @@ where
         .filter(ba::abbreviation.eq(book_name.to_lowercase()))
         .first::<(Book, BookAbbreviation)>(conn)
         .map_err(|e| match e {
-            Error::NotFound => BiblersError::BookNotFound {
+            Error::NotFound => DbError::BookNotFound {
                 book: book_name.to_owned(),
             },
-            e => BiblersError::DatabaseError { root_cause: e },
+            e => DbError::Other { cause: e },
         })?;
     let chapters: Vec<i32> = (1..=book.chapter_count).collect();
 
@@ -87,7 +87,7 @@ where
 }
 
 /// Gets all books in the Bible.
-pub fn all_books<C>(conn: &C) -> Result<Vec<Book>, BiblersError>
+pub fn all_books<C>(conn: &C) -> Result<Vec<Book>, DbError>
 where
     C: Connection<Backend = Sqlite>,
 {
@@ -96,7 +96,7 @@ where
     books
         .order_by(id)
         .load(conn)
-        .map_err(|e| BiblersError::DatabaseError { root_cause: e })
+        .map_err(|e| DbError::Other { cause: e })
 }
 
 /// Max number of search results returned from the database.
@@ -113,7 +113,7 @@ const SEARCH_RESULT_LIMIT: i64 = 15;
 /// quotation marks. This cannot be assumed safe in other translations.
 ///
 /// All characters other than alpha and quotations are stripped out.
-pub fn search<C>(query: &str, conn: &C) -> Result<Vec<(VerseFTS, Book)>, BiblersError>
+pub fn search<C>(query: &str, conn: &C) -> Result<Vec<(VerseFTS, Book)>, DbError>
 where
     C: Connection<Backend = Sqlite>,
 {
@@ -162,5 +162,5 @@ where
         .order_by(verses_fts::rank)
         .limit(SEARCH_RESULT_LIMIT)
         .load::<(VerseFTS, Book)>(conn)
-        .map_err(|e| BiblersError::DatabaseError { root_cause: e })
+        .map_err(|e| DbError::Other { cause: e })
 }

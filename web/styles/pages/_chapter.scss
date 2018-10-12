@@ -5,9 +5,19 @@
             color: $mid-grey;
             font-size: 1.1rem;
             line-height: 1.5rem;
+
+            &:nth-child(2) {
+                margin-top: 2rem;
+            }
+
+            &:last-child {
+                margin-bottom: 2rem;
+            }
+
             > a {
                 font-size: .75rem;
             }
+
             &:target {
                 padding: .25rem;
                 background-color: $light-grey;

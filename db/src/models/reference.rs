@@ -4,7 +4,7 @@ use std::str::FromStr;
 
 use regex::{Match, Regex};
 
-use BiblersError;
+use DbError;
 
 /// Model representing a Bible reference used to look up a
 /// passage in the database.
@@ -37,7 +37,7 @@ impl fmt::Display for Reference {
 }
 
 impl FromStr for Reference {
-    type Err = BiblersError;
+    type Err = DbError;
 
     fn from_str(s: &str) -> Result<Reference, Self::Err> {
         lazy_static! {
@@ -92,17 +92,17 @@ impl FromStr for Reference {
 }
 
 /// Parse a [Match](regex.Match.html) into an i32.
-fn parse_num_match(m: Match) -> Result<i32, BiblersError> {
+fn parse_num_match(m: Match) -> Result<i32, DbError> {
     m.as_str()
         .parse()
-        .map_err(|_| BiblersError::InvalidReference {
+        .map_err(|_| DbError::InvalidReference {
             reference: m.as_str().to_string(),
         })
 }
 
 /// Create an invalid reference error from the input.
-fn invalid_reference(s: &str) -> BiblersError {
-    BiblersError::InvalidReference {
+fn invalid_reference(s: &str) -> DbError {
+    DbError::InvalidReference {
         reference: s.to_string(),
     }
 }

@@ -37,32 +37,28 @@ pub enum VerseFormat {
     PlainText,
 }
 
-/// Error type that for the Bible.rs application.
 #[derive(Fail, Debug)]
-pub enum BiblersError {
+pub enum DbError {
     #[fail(display = "'{}' was not found.", book)]
     BookNotFound { book: String },
 
     #[fail(display = "There was a connection pool error.",)]
-    ConnectionPoolError { root_cause: String },
+    ConnectionPool { cause: String },
 
     #[fail(
         display = "There was a database error. Root cause: {:?}.",
-        root_cause
+        cause
     )]
-    DatabaseError { root_cause: Error },
+    Other { cause: Error },
 
     #[fail(
         display = "There was a database migration error. Root cause: {:?}.",
-        root_cause
+        cause
     )]
-    DatabaseMigrationError { root_cause: RunMigrationsError },
+    Migration { cause: RunMigrationsError },
 
     #[fail(display = "'{}' is not a valid Bible reference.", reference)]
     InvalidReference { reference: String },
-
-    #[fail(display = "There was an error rendering the HTML page.")]
-    TemplateError,
 }
 
 /// Builds a SQLite connection bool with the given URL.
@@ -79,13 +75,13 @@ pub fn establish_connection(db_url: &str) -> SqliteConnection {
 }
 
 /// Run any pending Diesel migrations.
-pub fn run_migrations<Conn>(conn: &Conn) -> Result<(), BiblersError>
+pub fn run_migrations<Conn>(conn: &Conn) -> Result<(), DbError>
 where
     Conn: MigrationConnection,
 {
     let dir = Path::new("./db/migrations");
     run_pending_migrations_in_directory(conn, &dir, &mut stdout())
-        .map_err(|e| BiblersError::DatabaseMigrationError { root_cause: e })
+        .map_err(|e| DbError::Migration { cause: e })
 }
 
 pub mod models;
