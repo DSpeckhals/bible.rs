@@ -14,7 +14,7 @@ RUN mkdir cli/src \
     && echo "fn main() {}" > db/src/main.rs \
     && mkdir web/src \
     && echo "fn main() {}" > web/src/main.rs
-RUN cargo build --release -p web \
+RUN cargo build --release \
     && rm -rf db/src web/src
 
 # Build the crate
