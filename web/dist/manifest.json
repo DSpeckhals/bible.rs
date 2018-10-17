@@ -2,15 +2,31 @@
     "name": "Bible.rs",
     "short_name": "Bible.rs",
     "lang": "en-US",
-    "start_url": ".",
+    "start_url": "/",
     "display": "standalone",
     "background-color": "#444444",
     "description": "Browse and search the King James version of the Bible using a lightning-fast and slick interface.",
+    "orientation": "portrait-primary",
     "icons": [
         {
-            "src": "static/img/bible.rs.svg",
+            "src": "./img/bible.rs-32x32.png",
+            "sizes": "32x32",
+            "type": "image/png"
+        },
+        {
+            "src": "./img/bible.rs.svg",
             "sizes": "48x48 72x72 96x96 128x128 256x256",
             "type": "image/svg+xml"
+        },
+        {
+            "src": "./img/bible.rs-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "./img/bible.rs-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png"
         }
     ]
 }

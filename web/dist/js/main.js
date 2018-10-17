@@ -39,5 +39,7 @@
     document.getElementById("search-form").onsubmit = function(e) {
         e.preventDefault();
         return false;
-    }
+    };
+
+    navigator.serviceWorker && navigator.serviceWorker.register("/static/js/sw.js", { scope: "/" });
 })();

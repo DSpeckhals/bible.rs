@@ -83,7 +83,7 @@ const BOOKS: [(&str, i32); 68] = [
 ];
 
 /// Error payload for a view (HTML or JSON)
-#[derive(Serialize, Debug)]
+#[derive(Clone, Serialize, Debug)]
 struct ErrorPayload {
     message: String,
 }
@@ -152,7 +152,7 @@ impl Link {
 }
 
 /// Links for the verses endpoint.
-#[derive(Serialize)]
+#[derive(Clone, Serialize, Debug)]
 pub struct VersesLinks {
     books: Link,
     book: Link,
@@ -242,7 +242,7 @@ impl VersesLinks {
 }
 
 /// Represents a payload of verses (HTML or JSON).
-#[derive(Serialize)]
+#[derive(Clone, Serialize, Debug)]
 pub struct VersesPayload {
     book: Book,
     links: VersesLinks,
@@ -281,7 +281,7 @@ impl VersesPayload {
 }
 
 /// Links for the books endpoint.
-#[derive(Serialize)]
+#[derive(Clone, Serialize, Debug)]
 pub struct BookLinks {
     books: Link,
     chapters: Vec<String>,
@@ -381,6 +381,80 @@ impl SearchResultPayload {
 
         Self {
             matches: matches.collect(),
+        }
+    }
+}
+
+#[derive(Clone, Serialize, Debug)]
+pub struct Meta {
+    description: String,
+    title: String,
+    url: String,
+}
+
+macro_rules! title_format {
+    () => {
+        "Bible.rs | {}"
+    };
+}
+
+macro_rules! url_format {
+    () => {
+        "https://bible.rs{}"
+    };
+}
+
+impl Meta {
+    fn for_about() -> Self {
+        Self {
+            description: "About Bible.rs".to_string(),
+            title: format!(title_format!(), "About"),
+            url: format!(url_format!(), "/about"),
+        }
+    }
+
+    fn for_all_books() -> Self {
+        Self {
+            description: "Browse and search the King James version of the Bible using a lightning-fast and slick interface.".to_string(),
+            title: format!(title_format!(), "King James Version"),
+            url: format!(url_format!(), ""),
+        }
+    }
+
+    fn for_book(book: &Book, url: &str) -> Self {
+        Self {
+            description: format!("The book of {}", book.name),
+            title: format!(title_format!(), book.name),
+            url: format!(url_format!(), url),
+        }
+    }
+
+    fn for_error() -> Self {
+        Self {
+            description: "Error page".to_string(),
+            title: format!(title_format!(), "Error"),
+            url: format!(url_format!(), ""),
+        }
+    }
+
+    fn for_reference(reference: &Reference, verses: &[Verse], url: &str) -> Self {
+        let ref_string = reference.to_string();
+        Self {
+            description: match verses.first() {
+                None => ref_string.to_owned(),
+                Some(v) => format!("{}...", v.words),
+            },
+            title: format!(title_format!(), ref_string),
+            url: format!(url_format!(), url),
+        }
+    }
+
+    fn for_search(query: &str, url: &str) -> Self {
+        let results_string = format!("Results for '{}'", query);
+        Self {
+            description: results_string.to_owned(),
+            title: format!(title_format!(), results_string),
+            url: format!(url_format!(), url),
         }
     }
 }
