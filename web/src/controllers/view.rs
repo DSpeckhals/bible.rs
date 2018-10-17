@@ -10,7 +10,7 @@ use db::models::Reference;
 use db::VerseFormat;
 
 use actors::*;
-use controllers::{AllBooksPayload, BookPayload, ErrorPayload, SearchResultPayload, VersesPayload};
+use controllers::*;
 use error::Error;
 use ServerState;
 
@@ -28,13 +28,13 @@ lazy_static! {
 #[derive(Serialize)]
 struct TemplatePayload<T: Serialize> {
     data: T,
-    title: String,
+    meta: Meta,
 }
 
 impl<T: Serialize> TemplatePayload<T> {
     /// Create a new HTML template payload.
-    fn new(title: String, data: T) -> Self {
-        Self { title, data }
+    fn new(data: T, meta: Meta) -> Self {
+        Self { data, meta }
     }
 
     /// Convert the template payload to HTML
@@ -59,7 +59,7 @@ impl From<Error> for HtmlError {
 
 impl error::ResponseError for HtmlError {
     fn error_response(&self) -> HttpResponse {
-        let body = &TemplatePayload::new("Error".to_string(), ErrorPayload::from_error(&self.0))
+        let body = &TemplatePayload::new(ErrorPayload::from_error(&self.0), Meta::for_error())
             .to_html("error", &ERR_TPL)
             .unwrap();
 
@@ -82,12 +82,6 @@ impl From<MailboxError> for HtmlError {
     }
 }
 
-macro_rules! title_format {
-    () => {
-        "Bible.rs | {}"
-    };
-}
-
 type AsyncResponse = Box<Future<Item = HttpResponse, Error = HtmlError>>;
 
 /// Represents an empty payload of data.
@@ -101,8 +95,8 @@ struct EmptyPayload;
 ///
 /// Return an HTML page that lists all books in the Bible.
 pub fn about((state,): (State<ServerState>,)) -> Result<HttpResponse, HtmlError> {
-    let title = format!(title_format!(), "About");
-    let body = TemplatePayload::new(title, EmptyPayload).to_html("about", &state.template)?;
+    let body =
+        TemplatePayload::new(EmptyPayload, Meta::for_about()).to_html("about", &state.template)?;
 
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
@@ -117,8 +111,7 @@ pub fn all_books((state,): (State<ServerState>,)) -> AsyncResponse {
         .from_err()
         .and_then(move |res| match res {
             Ok(books) => {
-                let title = format!(title_format!(), "King James Version");
-                let body = TemplatePayload::new(title, AllBooksPayload { books })
+                let body = TemplatePayload::new(AllBooksPayload { books }, Meta::for_all_books())
                     .to_html("all-books", &state.template)?;
 
                 Ok(HttpResponse::Ok().content_type("text/html").body(body))
@@ -141,9 +134,11 @@ pub fn book(req: &HttpRequest<ServerState>) -> AsyncResponse {
     }).from_err()
     .and_then(move |res| match res {
         Ok(result) => {
-            let title = format!(title_format!(), result.0.name);
-            let body = TemplatePayload::new(title, BookPayload::new(result, &req.drop_state()))
-                .to_html("book", &req.state().template)?;
+            let payload = BookPayload::new(result, &req.drop_state());
+            let body = TemplatePayload::new(
+                &payload,
+                Meta::for_book(&payload.book, &payload.links.current.url),
+            ).to_html("book", &req.state().template)?;
 
             Ok(HttpResponse::Ok().content_type("text/html").body(body))
         }
@@ -184,9 +179,14 @@ pub fn reference(req: &HttpRequest<ServerState>) -> AsyncResponse {
                 })?;
             }
 
-            let title = format!(title_format!(), payload.reference.to_string());
-            let body =
-                TemplatePayload::new(title, payload).to_html("chapter", &req.state().template)?;
+            let body = TemplatePayload::new(
+                &payload,
+                Meta::for_reference(
+                    &payload.reference,
+                    &payload.verses,
+                    &payload.links.current.url,
+                ),
+            ).to_html("chapter", &req.state().template)?;
             Ok(HttpResponse::Ok().content_type("text/html").body(body))
         }
         Err(e) => Err(HtmlError(e)),
@@ -206,8 +206,7 @@ pub fn search(req: &HttpRequest<ServerState>) -> AsyncResponse {
                 reference: "".to_string(),
             })))
         }
-    };
-    let title = format!(title_format!(), format!("Results for '{}'", query));
+    }.to_owned();
 
     let db = &req.state().db;
     let req = req.to_owned();
@@ -217,8 +216,8 @@ pub fn search(req: &HttpRequest<ServerState>) -> AsyncResponse {
     .and_then(move |res| match res {
         Ok(result) => {
             let body = TemplatePayload::new(
-                title,
                 SearchResultPayload::from_verses_fts(result, &req.drop_state()),
+                Meta::for_search(&query, &req.uri().to_string()),
             ).to_html("search-results", &req.state().template)?;
             Ok(HttpResponse::Ok().content_type("text/html").body(body))
         }
