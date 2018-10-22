@@ -91,9 +91,7 @@ type AsyncResponse = Box<Future<Item = HttpResponse, Error = HtmlError>>;
 #[derive(Serialize)]
 struct EmptyPayload;
 
-/// Handles HTTP requests for a list of all books.
-///
-/// Return an HTML page that lists all books in the Bible.
+/// Handles HTTP requests for the about page.
 pub fn about((state,): (State<ServerState>,)) -> Result<HttpResponse, HtmlError> {
     let body =
         TemplatePayload::new(EmptyPayload, Meta::for_about()).to_html("about", &state.template)?;

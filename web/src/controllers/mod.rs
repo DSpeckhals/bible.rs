@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use actix_web::HttpRequest;
 use serde_json;
 use url::Url;
@@ -129,6 +131,23 @@ fn verse_url(b: &str, c: i32, v: i32, req: &HttpRequest) -> Link {
     )
 }
 
+/// Generates a URL for verses from the given book, chapter, and verse range.
+fn verse_range_url(b: &str, c: i32, verses: &Range<i32>, req: &HttpRequest) -> Link {
+    let chapter_string = c.to_string();
+    let verses_string = if verses.start == verses.end {
+        verses.start.to_string()
+    } else {
+        format!("{}-{}", verses.start, verses.end)
+    };
+    Link::new(
+        &req.url_for(
+            "reference",
+            &[format!("{}/{}/{}", b, chapter_string, verses_string)],
+        ).unwrap(),
+        format!("{} {}:{}", b, chapter_string, verses_string),
+    )
+}
+
 /// Link representing a URL and label
 #[derive(Clone, Debug, Serialize)]
 pub struct Link {
@@ -170,11 +189,10 @@ impl VersesLinks {
             &req.url_for("book", &[&book.name]).unwrap(),
             book.name.to_string(),
         );
-        let (chapter_link, curr_link) = {
-            (
-                Some(chapter_url(&book.name, reference.chapter, req)),
-                chapter_url(&book.name, reference.chapter, req),
-            )
+        let chapter_link = Some(chapter_url(&book.name, reference.chapter, req));
+        let curr_link = match reference.verses {
+            Some(ref vs) => verse_range_url(&book.name, reference.chapter, &vs, req),
+            None => chapter_url(&book.name, reference.chapter, req),
         };
 
         let (prev_link, next_link) = {
