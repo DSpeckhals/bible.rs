@@ -1,4 +1,4 @@
-// version: 1
+// version: 2 (improve logos)
 
 self.addEventListener("fetch", (e) => {
     e.respondWith(
