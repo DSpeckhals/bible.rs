@@ -1,7 +1,7 @@
 use std::convert::From;
 
-use actix::prelude::*;
 use actix_web::*;
+use actix_web::actix::*;
 use futures::future::{err, ok, Future};
 
 use db::models::Reference;
