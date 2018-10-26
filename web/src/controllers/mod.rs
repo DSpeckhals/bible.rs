@@ -191,7 +191,7 @@ impl VersesLinks {
         );
         let chapter_link = Some(chapter_url(&book.name, reference.chapter, req));
         let curr_link = match reference.verses {
-            Some(ref vs) => verse_range_url(&book.name, reference.chapter, &vs, req),
+            Some(ref vs) => verse_range_url(&book.name, reference.chapter, vs, req),
             None => chapter_url(&book.name, reference.chapter, req),
         };
 

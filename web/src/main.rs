@@ -1,4 +1,3 @@
-extern crate actix;
 extern crate actix_web;
 extern crate db;
 extern crate dotenv;
@@ -21,10 +20,10 @@ extern crate url;
 use std::env;
 use std::error::Error;
 
-use actix::{Addr, SyncArbiter, System};
 use actix_web::{
+    actix::*,
     fs,
-    http::{Method, NormalizePath},
+    http::{ContentEncoding, Method, NormalizePath},
     middleware, server, App,
 };
 use dotenv::dotenv;
@@ -82,25 +81,32 @@ fn main() -> Result<(), Box<Error>> {
         App::with_state(ServerState {
             db: addr.clone(),
             template,
-        }).handler(
+        })
+        .default_encoding(ContentEncoding::Gzip)
+        .handler(
             "/static",
             fs::StaticFiles::with_config("./web/dist", StaticFileConfig).unwrap(),
-        ).resource("about", |r| r.get().with(view::about))
+        )
+        .resource("about", |r| r.get().with(view::about))
         .resource("/", |r| {
             r.name("bible");
             r.get().with(view::all_books)
-        }).resource("search", |r| r.get().f(view::search))
+        })
+        .resource("search", |r| r.get().f(view::search))
         .resource("{book}", |r| {
             r.name("book");
             r.get().f(view::book)
-        }).resource("{reference:.+\\d}", |r| {
+        })
+        .resource("{reference:.+\\d}", |r| {
             r.name("reference");
             r.get().f(view::reference)
-        }).resource("api/search", |r| r.get().f(api::search))
+        })
+        .resource("api/search", |r| r.get().f(api::search))
         .resource("api/{reference}.json", |r| r.get().f(api::reference))
         .default_resource(|r| r.method(Method::GET).h(NormalizePath::default()))
         .middleware(middleware::Logger::default())
-    }).bind("0.0.0.0:8080")
+    })
+    .bind("0.0.0.0:8080")
     .unwrap()
     .start();
 

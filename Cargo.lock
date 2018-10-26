@@ -1631,7 +1631,6 @@ dependencies = [
 name = "web"
 version = "0.1.0"
 dependencies = [
- "actix 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "actix-web 0.7.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "db 0.1.0",
  "dotenv 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
