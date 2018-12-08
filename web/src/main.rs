@@ -31,8 +31,8 @@ use handlebars::Handlebars;
 
 use db::{build_pool, establish_connection, run_migrations};
 
-use actors::DbExecutor;
-use controllers::{api, view};
+use crate::actors::DbExecutor;
+use crate::controllers::{api, view};
 
 /// Represents the [server state](actix_web.ServerState.html) for the application.
 pub struct ServerState {

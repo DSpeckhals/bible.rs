@@ -1,16 +1,16 @@
 use std::convert::From;
 
-use actix_web::*;
 use actix_web::actix::*;
+use actix_web::*;
 use futures::future::{err, ok, Future};
 
 use db::models::Reference;
 use db::{DbError, VerseFormat};
 
-use actors::{SearchMessage, VersesMessage};
-use controllers::{ErrorPayload, SearchResultPayload, VersesPayload};
-use error::Error;
-use ServerState;
+use crate::actors::{SearchMessage, VersesMessage};
+use crate::controllers::{ErrorPayload, SearchResultPayload, VersesPayload};
+use crate::error::Error;
+use crate::ServerState;
 
 #[derive(Fail, Debug)]
 #[fail(display = "Json Error")]
@@ -36,7 +36,8 @@ impl error::ResponseError for JsonError {
             }
             Error::BookNotFound { .. } => HttpResponse::NotFound(),
             Error::InvalidReference { .. } => HttpResponse::BadRequest(),
-        }.body(ErrorPayload::from_error(&self.0).to_json())
+        }
+        .body(ErrorPayload::from_error(&self.0).to_json())
     }
 }
 
@@ -60,14 +61,16 @@ pub fn reference(
     db.send(VersesMessage {
         reference: reference.to_owned(),
         format: VerseFormat::PlainText,
-    }).from_err()
+    })
+    .from_err()
     .and_then(move |res| match res {
         Ok(result) => {
             let payload = VersesPayload::new(result, reference, &req.drop_state());
             Ok(Json(payload))
         }
         Err(e) => Err(JsonError::from(e)),
-    }).responder()
+    })
+    .responder()
 }
 
 pub fn search(
@@ -83,7 +86,8 @@ pub fn search(
                 db.send(VersesMessage {
                     reference,
                     format: VerseFormat::PlainText,
-                }).from_err()
+                })
+                .from_err()
                 .and_then(move |res| match res {
                     Ok(results) => Ok(Json(SearchResultPayload::from_verses(
                         results,
@@ -91,20 +95,23 @@ pub fn search(
                     ))),
                     Err(Error::BookNotFound { .. }) => Ok(Json(SearchResultPayload::empty())),
                     Err(e) => Err(JsonError::from(e)),
-                }).responder()
+                })
+                .responder()
             // Otherwise look for word matches
             } else {
                 let req = req.to_owned();
                 db.send(SearchMessage {
                     query: q.to_owned(),
-                }).from_err()
+                })
+                .from_err()
                 .and_then(move |res| match res {
                     Ok(results) => Ok(Json(SearchResultPayload::from_verses_fts(
                         results,
                         &req.drop_state(),
                     ))),
                     Err(e) => Err(JsonError::from(e)),
-                }).responder()
+                })
+                .responder()
             }
         })
 }

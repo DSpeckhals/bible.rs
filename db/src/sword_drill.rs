@@ -4,8 +4,8 @@ use diesel::sql_types::{Integer, Text};
 use diesel::sqlite::Sqlite;
 use regex::Regex;
 
-use models::*;
-use {DbError, VerseFormat};
+use crate::models::*;
+use crate::{DbError, VerseFormat};
 
 sql_function!(
     /// Represents the [`highlight` function](https://sqlite.org/fts5.html#the_highlight_function)
@@ -22,8 +22,8 @@ pub fn verses<C>(
 where
     C: Connection<Backend = Sqlite>,
 {
-    use schema::verses as plain_text;
-    use schema::verses_html as html;
+    use crate::schema::verses as plain_text;
+    use crate::schema::verses_html as html;
 
     let (book, _) = book(&reference.book.to_lowercase(), conn)?;
 
@@ -52,7 +52,8 @@ where
             }
             query.load(conn)
         }
-    }.and_then(|verses| Ok((book, verses)))
+    }
+    .and_then(|verses| Ok((book, verses)))
     .map_err(|e| DbError::Other { cause: e })
 }
 
@@ -68,8 +69,8 @@ pub fn book<C>(book_name: &str, conn: &C) -> Result<(Book, Vec<i32>), DbError>
 where
     C: Connection<Backend = Sqlite>,
 {
-    use schema::book_abbreviations as ba;
-    use schema::books as b;
+    use crate::schema::book_abbreviations as ba;
+    use crate::schema::books as b;
 
     let (book, _) = b::table
         .inner_join(ba::table)
@@ -91,7 +92,7 @@ pub fn all_books<C>(conn: &C) -> Result<Vec<Book>, DbError>
 where
     C: Connection<Backend = Sqlite>,
 {
-    use schema::books::dsl::*;
+    use crate::schema::books::dsl::*;
 
     books
         .order_by(id)
@@ -117,8 +118,8 @@ pub fn search<C>(query: &str, conn: &C) -> Result<Vec<(VerseFTS, Book)>, DbError
 where
     C: Connection<Backend = Sqlite>,
 {
-    use schema::books;
-    use schema::verses_fts;
+    use crate::schema::books;
+    use crate::schema::verses_fts;
 
     lazy_static! {
         static ref ALPHA_NUM: Regex = Regex::new(r"[^a-zA-Z ]+").unwrap();
@@ -158,7 +159,8 @@ where
                 books::chapter_count,
                 books::testament,
             ),
-        )).filter(verses_fts::text.eq(format!("{}*", query)))
+        ))
+        .filter(verses_fts::text.eq(format!("{}*", query)))
         .order_by(verses_fts::rank)
         .limit(SEARCH_RESULT_LIMIT)
         .load::<(VerseFTS, Book)>(conn)

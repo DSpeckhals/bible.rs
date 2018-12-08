@@ -1,7 +1,7 @@
 use std::convert::From;
 
-use actix_web::*;
 use actix_web::actix::*;
+use actix_web::*;
 use futures::future::{err, Future};
 use handlebars::Handlebars;
 use serde::Serialize;
@@ -9,10 +9,10 @@ use serde::Serialize;
 use db::models::Reference;
 use db::VerseFormat;
 
-use actors::*;
-use controllers::*;
-use error::Error;
-use ServerState;
+use crate::actors::*;
+use crate::controllers::*;
+use crate::error::Error;
+use crate::ServerState;
 
 lazy_static! {
     static ref ERR_TPL: Handlebars = {
@@ -69,7 +69,8 @@ impl error::ResponseError for HtmlError {
             }
             Error::BookNotFound { .. } => HttpResponse::NotFound(),
             Error::InvalidReference { .. } => HttpResponse::BadRequest(),
-        }.content_type("text/html")
+        }
+        .content_type("text/html")
         .body(body)
     }
 }
@@ -115,7 +116,8 @@ pub fn all_books((state,): (State<ServerState>,)) -> AsyncResponse {
                 Ok(HttpResponse::Ok().content_type("text/html").body(body))
             }
             Err(e) => Err(HtmlError(e)),
-        }).responder()
+        })
+        .responder()
 }
 
 /// Handles HTTP requests for a book (e.g. /John)
@@ -129,19 +131,22 @@ pub fn book(req: &HttpRequest<ServerState>) -> AsyncResponse {
     let req = req.to_owned();
     db.send(BookMessage {
         name: info.0.to_owned(),
-    }).from_err()
+    })
+    .from_err()
     .and_then(move |res| match res {
         Ok(result) => {
             let payload = BookPayload::new(result, &req.drop_state());
             let body = TemplatePayload::new(
                 &payload,
                 Meta::for_book(&payload.book, &payload.links.current.url),
-            ).to_html("book", &req.state().template)?;
+            )
+            .to_html("book", &req.state().template)?;
 
             Ok(HttpResponse::Ok().content_type("text/html").body(body))
         }
         Err(e) => Err(HtmlError(e)),
-    }).responder()
+    })
+    .responder()
 }
 
 /// Handles HTTP requests for references (e.g. /John/1/1).
@@ -166,7 +171,8 @@ pub fn reference(req: &HttpRequest<ServerState>) -> AsyncResponse {
     db.send(VersesMessage {
         reference: reference.to_owned(),
         format: VerseFormat::HTML,
-    }).from_err()
+    })
+    .from_err()
     .and_then(move |res| match res {
         Ok(result) => {
             let payload = VersesPayload::new(result, reference, &req.drop_state());
@@ -184,11 +190,13 @@ pub fn reference(req: &HttpRequest<ServerState>) -> AsyncResponse {
                     &payload.verses,
                     &payload.links.current.url,
                 ),
-            ).to_html("chapter", &req.state().template)?;
+            )
+            .to_html("chapter", &req.state().template)?;
             Ok(HttpResponse::Ok().content_type("text/html").body(body))
         }
         Err(e) => Err(HtmlError(e)),
-    }).responder()
+    })
+    .responder()
 }
 
 /// Handle HTTP requests for a search HTML page.
@@ -204,21 +212,25 @@ pub fn search(req: &HttpRequest<ServerState>) -> AsyncResponse {
                 reference: "".to_string(),
             })))
         }
-    }.to_owned();
+    }
+    .to_owned();
 
     let db = &req.state().db;
     let req = req.to_owned();
     db.send(SearchMessage {
         query: query.to_owned(),
-    }).from_err()
+    })
+    .from_err()
     .and_then(move |res| match res {
         Ok(result) => {
             let body = TemplatePayload::new(
                 SearchResultPayload::from_verses_fts(result, &req.drop_state()),
                 Meta::for_search(&query, &req.uri().to_string()),
-            ).to_html("search-results", &req.state().template)?;
+            )
+            .to_html("search-results", &req.state().template)?;
             Ok(HttpResponse::Ok().content_type("text/html").body(body))
         }
         Err(e) => Err(HtmlError(e)),
-    }).responder()
+    })
+    .responder()
 }

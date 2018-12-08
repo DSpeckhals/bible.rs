@@ -9,7 +9,7 @@ use db::sword_drill;
 use db::SqliteConnectionPool;
 use db::{DbError, VerseFormat};
 
-use error::Error;
+use crate::error::Error;
 
 /// Maps a specific database error to a generic one, and log.
 fn map_db_err(e: DbError) -> Error {

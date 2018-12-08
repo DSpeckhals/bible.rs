@@ -17,7 +17,8 @@ fn main() -> io::Result<()> {
         (author: "Dustin Speckhals <dustin1114@gmail.com>")
         (about: "CLI for looking up Bible verses")
         (@arg REFERENCE: +required "The Bible reference to look up")
-    ).get_matches();
+    )
+    .get_matches();
 
     dotenv().ok();
     let url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");

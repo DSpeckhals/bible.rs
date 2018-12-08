@@ -6,7 +6,7 @@ use url::Url;
 
 use db::models::{Book, Reference, Verse, VerseFTS};
 
-use error::Error;
+use crate::error::Error;
 
 /// Name used in the HTML title generator
 const NAME: &str = "Bible.rs";
@@ -126,7 +126,8 @@ fn verse_url(b: &str, c: i32, v: i32, req: &HttpRequest) -> Link {
         &req.url_for(
             "reference",
             &[format!("{}/{}#v{}", b, chapter_string, verse_string)],
-        ).unwrap(),
+        )
+        .unwrap(),
         format!("{} {}:{}", b, chapter_string, verse_string),
     )
 }
@@ -143,7 +144,8 @@ fn verse_range_url(b: &str, c: i32, verses: &Range<i32>, req: &HttpRequest) -> L
         &req.url_for(
             "reference",
             &[format!("{}/{}/{}", b, chapter_string, verses_string)],
-        ).unwrap(),
+        )
+        .unwrap(),
         format!("{} {}:{}", b, chapter_string, verses_string),
     )
 }
