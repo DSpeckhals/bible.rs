@@ -2,6 +2,7 @@
 name = "db"
 version = "0.1.0"
 authors = ["Dustin Speckhals <dustin1114@gmail.com>"]
+edition = "2018"
 
 [dependencies.diesel]
 version = "1.3.2"

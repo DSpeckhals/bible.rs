@@ -42,13 +42,10 @@ pub enum DbError {
     #[fail(display = "'{}' was not found.", book)]
     BookNotFound { book: String },
 
-    #[fail(display = "There was a connection pool error.",)]
+    #[fail(display = "There was a connection pool error.")]
     ConnectionPool { cause: String },
 
-    #[fail(
-        display = "There was a database error. Root cause: {:?}.",
-        cause
-    )]
+    #[fail(display = "There was a database error. Root cause: {:?}.", cause)]
     Other { cause: Error },
 
     #[fail(

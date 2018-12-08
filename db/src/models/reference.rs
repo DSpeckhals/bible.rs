@@ -4,7 +4,7 @@ use std::str::FromStr;
 
 use regex::{Match, Regex};
 
-use DbError;
+use crate::DbError;
 
 /// Model representing a Bible reference used to look up a
 /// passage in the database.
@@ -27,11 +27,13 @@ impl fmt::Display for Reference {
                 book,
                 chapter,
                 verses: Some(verses),
-            } => if verses.start == verses.end {
-                write!(f, "{} {}:{}", book, chapter, verses.start)
-            } else {
-                write!(f, "{} {}:{}-{}", book, chapter, verses.start, verses.end)
-            },
+            } => {
+                if verses.start == verses.end {
+                    write!(f, "{} {}:{}", book, chapter, verses.start)
+                } else {
+                    write!(f, "{} {}:{}-{}", book, chapter, verses.start, verses.end)
+                }
+            }
         }
     }
 }
@@ -93,11 +95,9 @@ impl FromStr for Reference {
 
 /// Parse a [Match](regex.Match.html) into an i32.
 fn parse_num_match(m: Match) -> Result<i32, DbError> {
-    m.as_str()
-        .parse()
-        .map_err(|_| DbError::InvalidReference {
-            reference: m.as_str().to_string(),
-        })
+    m.as_str().parse().map_err(|_| DbError::InvalidReference {
+        reference: m.as_str().to_string(),
+    })
 }
 
 /// Create an invalid reference error from the input.
@@ -109,7 +109,7 @@ fn invalid_reference(s: &str) -> DbError {
 
 #[cfg(test)]
 mod tests {
-    use models::Reference;
+    use crate::models::Reference;
 
     #[test]
     fn fmt() {
@@ -124,7 +124,8 @@ mod tests {
             ("I Timothy 3:16", "I Timothy", 3, Some(16..16)),
             ("1 Timothy 3:16-18", "1 Timothy", 3, Some(16..18)),
             ("1tim 3.16", "1tim", 3, Some(16..16)),
-        ].iter()
+        ]
+        .iter()
         .for_each(|(raw, book, chapter, verses)| {
             assert_eq!(
                 raw.parse::<Reference>().unwrap(),
@@ -149,14 +150,16 @@ mod tests {
             ("I Timothy 3:16", "I Timothy", 3, Some(16..16)),
             ("1 Timothy 3:16-18", "1 Timothy", 3, Some(16..18)),
             ("1Tim 3:16", "1Tim", 3, Some(16..16)),
-        ].iter()
+        ]
+        .iter()
         .for_each(|(expected, book, chapter, verses)| {
             assert_eq!(
                 Reference {
                     book: book.to_string(),
                     chapter: *chapter,
                     verses: verses.to_owned()
-                }.to_string(),
+                }
+                .to_string(),
                 expected.to_string()
             );
         });
