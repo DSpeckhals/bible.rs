@@ -2,6 +2,7 @@ use std::ops::Range;
 
 use actix_web::HttpRequest;
 use serde_json;
+use serde_derive::Serialize;
 use url::Url;
 
 use db::models::{Book, Reference, Verse, VerseFTS};

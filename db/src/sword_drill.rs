@@ -2,6 +2,7 @@ use diesel::prelude::*;
 use diesel::result::Error;
 use diesel::sql_types::{Integer, Text};
 use diesel::sqlite::Sqlite;
+use lazy_static::lazy_static;
 use regex::Regex;
 
 use crate::models::*;

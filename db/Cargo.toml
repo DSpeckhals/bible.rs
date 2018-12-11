@@ -11,9 +11,9 @@ features = ["sqlite", "r2d2"]
 
 [dependencies]
 diesel_migrations = "1.3.0"
-env_logger = "0.5.13"
-failure = "0.1.2"
-lazy_static = "1.1.0"
-regex = "1"
-serde = "1.0.76"
-serde_derive = "1.0.76"
+env_logger = "0.6.0"
+failure = "0.1.3"
+lazy_static = "1.2.0"
+regex = "1.1.0"
+serde = "1.0.82"
+serde_derive = "1.0.82"

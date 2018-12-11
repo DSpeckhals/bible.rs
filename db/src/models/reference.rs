@@ -2,7 +2,9 @@ use std::fmt;
 use std::ops::Range;
 use std::str::FromStr;
 
+use lazy_static::lazy_static;
 use regex::{Match, Regex};
+use serde_derive::Serialize;
 
 use crate::DbError;
 
@@ -16,7 +18,7 @@ pub struct Reference {
 }
 
 impl fmt::Display for Reference {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Reference {
                 book,
@@ -94,7 +96,7 @@ impl FromStr for Reference {
 }
 
 /// Parse a [Match](regex.Match.html) into an i32.
-fn parse_num_match(m: Match) -> Result<i32, DbError> {
+fn parse_num_match(m: Match<'_>) -> Result<i32, DbError> {
     m.as_str().parse().map_err(|_| DbError::InvalidReference {
         reference: m.as_str().to_string(),
     })

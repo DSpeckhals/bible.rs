@@ -1,7 +1,4 @@
-#[macro_use]
-extern crate clap;
-extern crate db;
-extern crate dotenv;
+use clap::clap_app;
 
 use std::env;
 use std::io::{self, Write};
