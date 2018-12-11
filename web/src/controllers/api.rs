@@ -2,6 +2,7 @@ use std::convert::From;
 
 use actix_web::actix::*;
 use actix_web::*;
+use failure::Fail;
 use futures::future::{err, ok, Future};
 
 use db::models::Reference;
@@ -49,7 +50,7 @@ impl From<MailboxError> for JsonError {
 
 pub fn reference(
     req: &HttpRequest<ServerState>,
-) -> Box<Future<Item = Json<VersesPayload>, Error = JsonError>> {
+) -> Box<dyn Future<Item = Json<VersesPayload>, Error = JsonError>> {
     let db = &req.state().db;
     let info = Path::<(String,)>::extract(req).unwrap();
     let reference = match info.0.parse::<Reference>() {
@@ -75,7 +76,7 @@ pub fn reference(
 
 pub fn search(
     req: &HttpRequest<ServerState>,
-) -> Box<Future<Item = Json<SearchResultPayload>, Error = JsonError>> {
+) -> Box<dyn Future<Item = Json<SearchResultPayload>, Error = JsonError>> {
     let db = &req.state().db;
     req.query()
         .get("q")

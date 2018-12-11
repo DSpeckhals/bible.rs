@@ -1,22 +1,3 @@
-extern crate actix_web;
-extern crate db;
-extern crate dotenv;
-extern crate env_logger;
-#[macro_use]
-extern crate failure;
-extern crate futures;
-extern crate handlebars;
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
-extern crate num_cpus;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-extern crate serde_json;
-extern crate url;
-
 use std::env;
 use std::error::Error;
 
@@ -41,7 +22,7 @@ pub struct ServerState {
 }
 
 /// Registers the [Handlebars](handlebars.handlebars.html) templates for the application.
-fn register_templates() -> Result<Handlebars, Box<Error>> {
+fn register_templates() -> Result<Handlebars, Box<dyn Error>> {
     let mut tpl = Handlebars::new();
     tpl.set_strict_mode(true);
     tpl.register_templates_directory(".hbs", "./web/templates/")?;
@@ -58,7 +39,7 @@ impl fs::StaticFileConfig for StaticFileConfig {
     }
 }
 
-fn main() -> Result<(), Box<Error>> {
+fn main() -> Result<(), Box<dyn Error>> {
     dotenv().ok();
 
     // Set up logging

@@ -2,16 +2,6 @@
 
 #[macro_use]
 extern crate diesel;
-extern crate diesel_migrations;
-extern crate env_logger;
-#[macro_use]
-extern crate failure;
-#[macro_use]
-extern crate lazy_static;
-extern crate regex;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
 
 use std::io::stdout;
 use std::path::Path;
@@ -22,6 +12,7 @@ use diesel::result::Error;
 use diesel_migrations::{
     connection::MigrationConnection, run_pending_migrations_in_directory, RunMigrationsError,
 };
+use failure::Fail;
 
 /// Type of a pooled SQLite connection manager.
 pub type SqliteConnectionManager = r2d2::ConnectionManager<SqliteConnection>;

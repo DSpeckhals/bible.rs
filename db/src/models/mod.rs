@@ -3,6 +3,7 @@ use diesel::deserialize::{self, FromSql, FromSqlRow, Queryable};
 use diesel::row::Row;
 use diesel::sql_types::Text;
 use diesel::sqlite::Sqlite;
+use serde_derive::Serialize;
 
 /// Model representing a Bible verse.
 #[derive(Clone, Debug, Queryable, Serialize)]

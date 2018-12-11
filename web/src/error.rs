@@ -1,3 +1,5 @@
+use failure::Fail;
+
 /// Error type that for the Bible.rs application.
 #[derive(Fail, Debug)]
 pub enum Error {

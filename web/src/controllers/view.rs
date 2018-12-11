@@ -2,8 +2,11 @@ use std::convert::From;
 
 use actix_web::actix::*;
 use actix_web::*;
+use failure::Fail;
 use futures::future::{err, Future};
 use handlebars::Handlebars;
+use lazy_static::lazy_static;
+use log::error;
 use serde::Serialize;
 
 use db::models::Reference;
@@ -83,7 +86,7 @@ impl From<MailboxError> for HtmlError {
     }
 }
 
-type AsyncResponse = Box<Future<Item = HttpResponse, Error = HtmlError>>;
+type AsyncResponse = Box<dyn Future<Item = HttpResponse, Error = HtmlError>>;
 
 /// Represents an empty payload of data.
 ///

@@ -3,6 +3,7 @@
 //! Each actor implements a message and its handler, and generalizes fine-grained
 //! errors returned from the database layer.
 use actix_web::actix::*;
+use log::error;
 
 use db::models::*;
 use db::sword_drill;
