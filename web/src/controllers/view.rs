@@ -165,7 +165,7 @@ pub fn reference(req: &HttpRequest<ServerState>) -> AsyncResponse {
         Err(_) => {
             return Box::new(err(HtmlError(Error::InvalidReference {
                 reference: raw_reference,
-            })))
+            })));
         }
     };
 
@@ -213,7 +213,7 @@ pub fn search(req: &HttpRequest<ServerState>) -> AsyncResponse {
         None => {
             return Box::new(err(HtmlError(Error::InvalidReference {
                 reference: "".to_string(),
-            })))
+            })));
         }
     }
     .to_owned();
