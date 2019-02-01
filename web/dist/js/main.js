@@ -24,6 +24,7 @@
     ]).on("autocomplete:selected", function (e, suggestion) {
         document.location.href = suggestion.link.url;
     });
+    document.getElementById("q").setAttribute("aria-label", "Search the Bible");
 
     document.onkeypress = function (e) {
         if (e.ctrlKey || e.altKey || e.metaKey) {
