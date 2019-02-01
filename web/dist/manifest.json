@@ -4,7 +4,8 @@
     "lang": "en-US",
     "start_url": "/",
     "display": "standalone",
-    "background-color": "#444444",
+    "background_color": "#ffffff",
+    "theme_color": "#444444",
     "description": "Browse and search the King James version of the Bible using a lightning-fast and slick interface.",
     "orientation": "portrait-primary",
     "icons": [
