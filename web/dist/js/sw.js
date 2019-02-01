@@ -4,23 +4,19 @@ const CACHE_NAME = "biblers-cache-v3";
 self.addEventListener("fetch", (e) => {
     // Search API requests are not locally cached.
     if (e.request.url.indexOf("/api/search") > -1) {
-        e.respondWith(
-            caches.match(e.request).then(resp => resp || fetch(e.request)),
-        );
+        e.respondWith(fetch(e.request));
 
     // Standard pages are cached.
     } else {
         e.respondWith(
-            caches.match(e.request).then(initialResp => {
-                console.log(`[Service Worker] Fetching resource: ${e.request.url}`);
-                return initialResp || fetch(e.request).then(resp => {
-                    return caches.open(CACHE_NAME).then(cache => {
-                        console.log(`[Service Worker] Caching new resource: ${e.request.url}`);
+            caches.match(e.request).then(initialResp =>
+                initialResp || fetch(e.request).then(resp =>
+                    caches.open(CACHE_NAME).then(cache => {
                         cache.put(e.request, resp.clone());
                         return resp;
                     })
-                })
-            }),
+                )
+            ),
         )
     }
 });
@@ -47,12 +43,12 @@ self.addEventListener("install", (e) => {
 // Clear the old caches.
 self.addEventListener("activate", (e) => {
     e.waitUntil(
-        caches.keys().then((keyList) => {
-            return Promise.all(keyList.map((k) => {
+        caches.keys().then((keyList) =>
+            Promise.all(keyList.map((k) => {
                 if (CACHE_NAME.indexOf(k) === -1) {
                     return caches.delete(k);
                 }
-            }));
-        }),
+            }))
+        ),
     );
 });
