@@ -5,9 +5,9 @@
     </nav>
     <nav>
         <ol>
-            {{~ #each books as |book|}}
+            {{~ #each links.books as |book|}}
             <li>
-                <a href="/{{name}}">{{name}}</a>
+                <a href="{{url}}">{{label}}</a>
             </li>
             {{~ /each}}
         </ol>
