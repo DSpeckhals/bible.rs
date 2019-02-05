@@ -1,3 +1,5 @@
+#![macro_use]
+
 use std::ops::Range;
 
 use actix_web::HttpRequest;
@@ -8,9 +10,13 @@ use url::Url;
 use db::models::{Book, Reference, Verse, VerseFTS};
 
 use crate::error::Error;
+use crate::json_ld::{
+    AboutJsonLd, AllBooksJsonLd, BookJsonLd, BreadcrumbListJsonLd, JsonLd, ListItemJsonLd,
+    ReferenceJsonLd,
+};
 
 /// Name used in the HTML title generator
-const NAME: &str = "Bible.rs";
+pub const NAME: &str = "Bible.rs";
 
 /// Array of books indexed by their order in the Bible, including the
 /// total number of chapters in that book.
@@ -154,8 +160,8 @@ fn verse_range_url(b: &str, c: i32, verses: &Range<i32>, req: &HttpRequest) -> L
 /// Link representing a URL and label
 #[derive(Clone, Debug, Serialize)]
 pub struct Link {
-    label: String,
-    url: String,
+    pub label: String,
+    pub url: String,
 }
 
 impl Link {
@@ -176,12 +182,12 @@ impl Link {
 /// Links for the verses endpoint.
 #[derive(Clone, Serialize, Debug)]
 pub struct VersesLinks {
-    books: Link,
-    book: Link,
-    chapter: Option<Link>,
-    previous: Option<Link>,
-    next: Option<Link>,
-    current: Link,
+    pub books: Link,
+    pub book: Link,
+    pub chapter: Option<Link>,
+    pub previous: Option<Link>,
+    pub next: Option<Link>,
+    pub current: Link,
 }
 
 impl VersesLinks {
@@ -304,11 +310,11 @@ impl VersesPayload {
 /// Links for the books endpoint.
 #[derive(Clone, Serialize, Debug)]
 pub struct BookLinks {
-    books: Link,
-    chapters: Vec<String>,
-    previous: Option<Link>,
-    next: Option<Link>,
-    current: Link,
+    pub books: Link,
+    pub chapters: Vec<String>,
+    pub previous: Option<Link>,
+    pub next: Option<Link>,
+    pub current: Link,
 }
 
 impl BookLinks {
@@ -355,10 +361,16 @@ impl BookPayload {
     }
 }
 
+#[derive(Serialize, Clone)]
+pub struct AllBooksLinks {
+    pub books: Vec<Link>,
+}
+
 /// Payload for the "all books" endpoint (HTML or JSON).
 #[derive(Serialize)]
 pub struct AllBooksPayload {
     books: Vec<Book>,
+    links: AllBooksLinks,
 }
 
 /// A search result.
@@ -409,6 +421,7 @@ impl SearchResultPayload {
 #[derive(Clone, Serialize, Debug)]
 pub struct Meta {
     description: String,
+    json_ld: Vec<JsonLd>,
     title: String,
     url: String,
 }
@@ -429,44 +442,62 @@ impl Meta {
     fn for_about() -> Self {
         Self {
             description: "About Bible.rs".to_string(),
+            json_ld: vec![JsonLd::About(Box::new(AboutJsonLd::new()))],
             title: format!(title_format!(), "About"),
             url: format!(url_format!(), "/about"),
         }
     }
 
-    fn for_all_books() -> Self {
+    fn for_all_books(links: &AllBooksLinks) -> Self {
         Self {
             description: "Browse and search the King James version of the Bible using a lightning-fast and slick interface.".to_string(),
+            json_ld: vec![JsonLd::AllBooks(AllBooksJsonLd::new(links))],
             title: format!(title_format!(), "King James Version"),
             url: format!(url_format!(), ""),
         }
     }
 
-    fn for_book(book: &Book, url: &str) -> Self {
+    fn for_book(book: &Book, links: &BookLinks) -> Self {
         Self {
             description: format!("The book of {}", book.name),
+            json_ld: vec![
+                JsonLd::Book(BookJsonLd::new(&book, links)),
+                JsonLd::BreadcrumbList(BreadcrumbListJsonLd::new(vec![
+                    ListItemJsonLd::new(&links.books, 1),
+                    ListItemJsonLd::new(&links.current, 2),
+                ])),
+            ],
             title: format!(title_format!(), book.name),
-            url: format!(url_format!(), url),
+            url: format!(url_format!(), links.current.url),
         }
     }
 
     fn for_error() -> Self {
         Self {
             description: "Error page".to_string(),
+            json_ld: vec![],
             title: format!(title_format!(), "Error"),
             url: format!(url_format!(), ""),
         }
     }
 
-    fn for_reference(reference: &Reference, verses: &[Verse], url: &str) -> Self {
+    fn for_reference(reference: &Reference, verses: &[Verse], links: &VersesLinks) -> Self {
         let ref_string = reference.to_string();
         Self {
             description: match verses.first() {
                 None => ref_string.to_owned(),
                 Some(v) => format!("{}...", v.words),
             },
+            json_ld: vec![
+                JsonLd::Reference(ReferenceJsonLd::new(&reference, &links)),
+                JsonLd::BreadcrumbList(BreadcrumbListJsonLd::new(vec![
+                    ListItemJsonLd::new(&links.books, 1),
+                    ListItemJsonLd::new(&links.book, 2),
+                    ListItemJsonLd::new(&links.current, 3),
+                ])),
+            ],
             title: format!(title_format!(), ref_string),
-            url: format!(url_format!(), url),
+            url: format!(url_format!(), links.current.url),
         }
     }
 
@@ -474,6 +505,7 @@ impl Meta {
         let results_string = format!("Results for '{}'", query);
         Self {
             description: results_string.to_owned(),
+            json_ld: vec![],
             title: format!(title_format!(), results_string),
             url: format!(url_format!(), url),
         }

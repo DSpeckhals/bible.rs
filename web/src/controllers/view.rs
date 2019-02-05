@@ -106,15 +106,28 @@ pub fn about((state,): (State<ServerState>,)) -> Result<HttpResponse, HtmlError>
 /// Handles HTTP requests for a list of all books.
 ///
 /// Return an HTML page that lists all books in the Bible.
-pub fn all_books((state,): (State<ServerState>,)) -> AsyncResponse {
-    state
-        .db
-        .send(AllBooksMessage)
+pub fn all_books(req: &HttpRequest<ServerState>) -> AsyncResponse {
+    let db = &req.state().db;
+
+    let req = req.to_owned();
+    db.send(AllBooksMessage)
         .from_err()
         .and_then(move |res| match res {
             Ok(books) => {
-                let body = TemplatePayload::new(AllBooksPayload { books }, Meta::for_all_books())
-                    .to_html("all-books", &state.template)?;
+                let links = AllBooksLinks {
+                    books: books
+                        .iter()
+                        .map(|b| book_url(&b.name, &req.drop_state()))
+                        .collect(),
+                };
+                let body = TemplatePayload::new(
+                    AllBooksPayload {
+                        books,
+                        links: links.to_owned(),
+                    },
+                    Meta::for_all_books(&links),
+                )
+                .to_html("all-books", &req.state().template)?;
 
                 Ok(HttpResponse::Ok().content_type("text/html").body(body))
             }
@@ -139,11 +152,9 @@ pub fn book(req: &HttpRequest<ServerState>) -> AsyncResponse {
     .and_then(move |res| match res {
         Ok(result) => {
             let payload = BookPayload::new(result, &req.drop_state());
-            let body = TemplatePayload::new(
-                &payload,
-                Meta::for_book(&payload.book, &payload.links.current.url),
-            )
-            .to_html("book", &req.state().template)?;
+            let body =
+                TemplatePayload::new(&payload, Meta::for_book(&payload.book, &payload.links))
+                    .to_html("book", &req.state().template)?;
 
             Ok(HttpResponse::Ok().content_type("text/html").body(body))
         }
@@ -188,11 +199,7 @@ pub fn reference(req: &HttpRequest<ServerState>) -> AsyncResponse {
 
             let body = TemplatePayload::new(
                 &payload,
-                Meta::for_reference(
-                    &payload.reference,
-                    &payload.verses,
-                    &payload.links.current.url,
-                ),
+                Meta::for_reference(&payload.reference, &payload.verses, &payload.links),
             )
             .to_html("chapter", &req.state().template)?;
             Ok(HttpResponse::Ok().content_type("text/html").body(body))

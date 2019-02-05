@@ -42,7 +42,7 @@ cookies or third-party analytic services involved in Bible.rs.
 
 ## Ideas for the Future
 - Add more metadata (book author, year written, etc.).
-- Add Schema.org metadata to each page.
+- Improve Schema.org metadata.
 - Add languages other than English.
 - When and if SQLite is ever a bottleneck, switch to a client-server database.
 - Make the searching "smart."

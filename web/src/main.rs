@@ -1,3 +1,5 @@
+#![warn(clippy::all)]
+
 use std::env;
 use std::error::Error;
 
@@ -71,7 +73,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .resource("about", |r| r.get().with(view::about))
         .resource("/", |r| {
             r.name("bible");
-            r.get().with(view::all_books)
+            r.get().f(view::all_books)
         })
         .resource("search", |r| r.get().f(view::search))
         .resource("{book}", |r| {
@@ -99,3 +101,4 @@ fn main() -> Result<(), Box<dyn Error>> {
 mod actors;
 mod controllers;
 mod error;
+mod json_ld;

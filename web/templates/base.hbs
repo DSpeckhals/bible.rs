@@ -27,6 +27,11 @@
     <meta name="apple-mobile-web-app-title" content="Bible.rs">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="#444444">
+    {{~ #each meta.json_ld as |json_ld|}}
+    <script type="application/ld+json">
+    {{{json_ld}}}
+    </script>
+    {{~ /each}}
 </head>
 
 <body>
