@@ -5,23 +5,23 @@
             <img src="/static/img/bible.rs.svg" alt="BIBLE.RS" height="100" width="100" class="logo">
         </a>
     </nav>
-    <div class="heading">
-        <nav class="previous">
+    <nav class="heading">
+        <div class="previous">
             {{~ #if links.previous}}
             <a href="{{links.previous.url}}" title="{{links.previous.label}}">
                 <img src="/static/img/arrow-back.svg" alt="Back Arrow" height="28" width="28">
             </a>
             {{~ /if}}
-        </nav>
+        </div>
         <h1>{{book.name}}</h1>
-        <nav class="next">
+        <div class="next">
             {{~ #if links.next}}
             <a href="{{links.next.url}}" title="{{links.next.label}}">
                 <img src="/static/img/arrow-forward.svg" alt="Forward Arrow" height="28" width="28">
             </a>
             {{~ /if}}
-        </nav>
-    </div>
+        </div>
+    </nav>
     <nav>
         <ol>
             {{~ #each chapters as |c|}}
