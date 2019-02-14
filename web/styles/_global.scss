@@ -55,19 +55,17 @@ ol {
     margin: 2rem auto;
 }
 
-nav {
-    &.top-nav, &.bottom-nav {
-        text-align: center;
-    }
+nav.top-nav {
+    text-align: center;
 }
 
-.heading {
+.heading, .footing {
     .previous {
         display: inline-block;
         width: 15%;
         text-align: left;
     }
-    h1 {
+    h1, .book {
         display: inline-block;
         width: 67%;
         text-align: center;
