@@ -3,8 +3,7 @@
 use std::ops::Range;
 
 use actix_web::HttpRequest;
-use serde_derive::Serialize;
-use serde_json;
+use serde_derive::{Deserialize, Serialize};
 use url::Url;
 
 use db::models::{Book, Reference, Verse, VerseFTS};
@@ -91,6 +90,11 @@ const BOOKS: [(&str, i32); 68] = [
     ("_", 0), // Dummy to avoid having to do a range check for the "next" book of Revelation
 ];
 
+#[derive(Clone, Deserialize, Debug)]
+pub struct SearchParams {
+    q: String,
+}
+
 /// Error payload for a view (HTML or JSON)
 #[derive(Clone, Serialize, Debug)]
 struct ErrorPayload {
@@ -103,10 +107,6 @@ impl ErrorPayload {
         Self {
             message: e.to_string(),
         }
-    }
-
-    pub fn to_json(&self) -> String {
-        serde_json::to_string_pretty(&self).unwrap()
     }
 }
 

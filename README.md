@@ -51,3 +51,10 @@ cookies or third-party analytic services involved in Bible.rs.
 - Have any ideas? [File an issue](https://github.com/DSpeckhals/bible.rs/issues/new).
 - Want to venture into the code? Clone the repository from
 [Github](https://github.com/DSpeckhals/bible.rs) and create a pull request.
+
+## Docker
+- To run the Docker container for Bible.rs
+
+    `docker build -t biblers . && docker run -p 8080:8080 --rm -it biblers`
+
+- Navigate to `localhost:8080`

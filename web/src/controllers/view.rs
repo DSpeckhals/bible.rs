@@ -1,21 +1,22 @@
 use std::convert::From;
 
-use actix_web::actix::*;
-use actix_web::*;
+use actix_web::error::BlockingError;
+use actix_web::web;
+use actix_web::web::HttpResponse;
+use actix_web::ResponseError;
 use failure::Fail;
-use futures::future::{err, Future};
+use futures::future::{err, Either, Future};
 use handlebars::Handlebars;
 use lazy_static::lazy_static;
 use log::error;
 use serde::Serialize;
 
 use db::models::Reference;
-use db::VerseFormat;
+use db::{sword_drill, DbError, VerseFormat};
 
-use crate::actors::*;
 use crate::controllers::*;
 use crate::error::Error;
-use crate::ServerState;
+use crate::ServerData;
 
 lazy_static! {
     static ref ERR_TPL: Handlebars = {
@@ -60,7 +61,7 @@ impl From<Error> for HtmlError {
     }
 }
 
-impl error::ResponseError for HtmlError {
+impl ResponseError for HtmlError {
     fn error_response(&self) -> HttpResponse {
         let body = &TemplatePayload::new(ErrorPayload::from_error(&self.0), Meta::for_error())
             .to_html("error", &ERR_TPL)
@@ -78,15 +79,21 @@ impl error::ResponseError for HtmlError {
     }
 }
 
-impl From<MailboxError> for HtmlError {
-    fn from(e: MailboxError) -> Self {
-        HtmlError(Error::Actix {
-            cause: e.to_string(),
+impl From<BlockingError<DbError>> for HtmlError {
+    fn from(e: BlockingError<DbError>) -> Self {
+        error!("{}", e);
+        HtmlError(match e {
+            BlockingError::Canceled => Error::Actix {
+                cause: e.to_string(),
+            },
+            BlockingError::Error(db_e) => match db_e {
+                DbError::BookNotFound { book } => Error::BookNotFound { book },
+                DbError::InvalidReference { reference } => Error::InvalidReference { reference },
+                _ => Error::Db,
+            },
         })
     }
 }
-
-type AsyncResponse = Box<dyn Future<Item = HttpResponse, Error = HtmlError>>;
 
 /// Represents an empty payload of data.
 ///
@@ -96,9 +103,9 @@ type AsyncResponse = Box<dyn Future<Item = HttpResponse, Error = HtmlError>>;
 struct EmptyPayload;
 
 /// Handles HTTP requests for the about page.
-pub fn about((state,): (State<ServerState>,)) -> Result<HttpResponse, HtmlError> {
+pub fn about(data: web::Data<ServerData>) -> Result<HttpResponse, HtmlError> {
     let body =
-        TemplatePayload::new(EmptyPayload, Meta::for_about()).to_html("about", &state.template)?;
+        TemplatePayload::new(EmptyPayload, Meta::for_about()).to_html("about", &data.template)?;
 
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
@@ -106,61 +113,50 @@ pub fn about((state,): (State<ServerState>,)) -> Result<HttpResponse, HtmlError>
 /// Handles HTTP requests for a list of all books.
 ///
 /// Return an HTML page that lists all books in the Bible.
-pub fn all_books(req: &HttpRequest<ServerState>) -> AsyncResponse {
-    let db = &req.state().db;
+pub fn all_books(
+    data: web::Data<ServerData>,
+    req: HttpRequest,
+) -> impl Future<Item = HttpResponse, Error = HtmlError> {
+    let db = data.db.to_owned();
+    web::block(move || sword_drill::all_books(&db.get().unwrap()))
+        .map_err(HtmlError::from)
+        .and_then(move |books| {
+            let links = AllBooksLinks {
+                books: books.iter().map(|b| book_url(&b.name, &req)).collect(),
+            };
+            let body = TemplatePayload::new(
+                AllBooksPayload {
+                    books,
+                    links: links.to_owned(),
+                },
+                Meta::for_all_books(&links),
+            )
+            .to_html("all-books", &data.template)?;
 
-    let req = req.to_owned();
-    db.send(AllBooksMessage)
-        .from_err()
-        .and_then(move |res| match res {
-            Ok(books) => {
-                let links = AllBooksLinks {
-                    books: books
-                        .iter()
-                        .map(|b| book_url(&b.name, &req.drop_state()))
-                        .collect(),
-                };
-                let body = TemplatePayload::new(
-                    AllBooksPayload {
-                        books,
-                        links: links.to_owned(),
-                    },
-                    Meta::for_all_books(&links),
-                )
-                .to_html("all-books", &req.state().template)?;
-
-                Ok(HttpResponse::Ok().content_type("text/html").body(body))
-            }
-            Err(e) => Err(HtmlError(e)),
+            Ok(HttpResponse::Ok().content_type("text/html").body(body))
         })
-        .responder()
 }
 
 /// Handles HTTP requests for a book (e.g. /John)
 ///
 /// Assume the path parameter is a Bible book, and get an HTML response
 /// that has book metadata and a list of chapters.
-pub fn book(req: &HttpRequest<ServerState>) -> AsyncResponse {
-    let info = Path::<(String,)>::extract(req).unwrap();
-    let db = &req.state().db;
-
-    let req = req.to_owned();
-    db.send(BookMessage {
-        name: info.0.to_owned(),
-    })
-    .from_err()
-    .and_then(move |res| match res {
-        Ok(result) => {
-            let payload = BookPayload::new(result, &req.drop_state());
+pub fn book(
+    data: web::Data<ServerData>,
+    path: web::Path<(String,)>,
+    req: HttpRequest,
+) -> impl Future<Item = HttpResponse, Error = HtmlError> {
+    let db = data.db.to_owned();
+    web::block(move || sword_drill::book(&path.0, &db.get().unwrap()))
+        .map_err(HtmlError::from)
+        .and_then(move |result| {
+            let payload = BookPayload::new(result, &req);
             let body =
                 TemplatePayload::new(&payload, Meta::for_book(&payload.book, &payload.links))
-                    .to_html("book", &req.state().template)?;
+                    .to_html("book", &data.template)?;
 
             Ok(HttpResponse::Ok().content_type("text/html").body(body))
-        }
-        Err(e) => Err(HtmlError(e)),
-    })
-    .responder()
+        })
 }
 
 /// Handles HTTP requests for references (e.g. /John/1/1).
@@ -168,79 +164,64 @@ pub fn book(req: &HttpRequest<ServerState>) -> AsyncResponse {
 /// Parse the URL path for a string that would indicate a reference.
 /// If the path parses to a reference, then it is passed to the database
 /// layer and looked up, returning an HTTP response with the verse body.
-pub fn reference(req: &HttpRequest<ServerState>) -> AsyncResponse {
-    let info = Path::<(String,)>::extract(req).unwrap();
-    let raw_reference = info.0.replace("/", ".");
-    let reference = match raw_reference.parse::<Reference>() {
-        Ok(r) => r,
-        Err(_) => {
-            return Box::new(err(HtmlError(Error::InvalidReference {
-                reference: raw_reference,
-            })));
-        }
-    };
+pub fn reference(
+    data: web::Data<ServerData>,
+    path: web::Path<(String,)>,
+    req: HttpRequest,
+) -> impl Future<Item = HttpResponse, Error = HtmlError> {
+    let db = data.db.to_owned();
+    let raw_reference = path.0.replace("/", ".");
+    match raw_reference.parse::<Reference>() {
+        Ok(reference) => {
+            let payload_reference = reference.to_owned();
+            Either::A(
+                web::block(move || {
+                    sword_drill::verses(&reference, &VerseFormat::HTML, &db.get().unwrap())
+                })
+                .map_err(HtmlError::from)
+                .and_then(move |result| {
+                    let payload = VersesPayload::new(result, payload_reference, &req);
 
-    let db = &req.state().db;
-    let req = req.to_owned();
-    db.send(VersesMessage {
-        reference: reference.to_owned(),
-        format: VerseFormat::HTML,
-    })
-    .from_err()
-    .and_then(move |res| match res {
-        Ok(result) => {
-            let payload = VersesPayload::new(result, reference, &req.drop_state());
+                    if payload.verses.is_empty() {
+                        Err(Error::InvalidReference {
+                            reference: raw_reference,
+                        })?;
+                    }
 
-            if payload.verses.is_empty() {
-                Err(Error::InvalidReference {
-                    reference: raw_reference,
-                })?;
-            }
-
-            let body = TemplatePayload::new(
-                &payload,
-                Meta::for_reference(&payload.reference, &payload.verses, &payload.links),
+                    let body = TemplatePayload::new(
+                        &payload,
+                        Meta::for_reference(&payload.reference, &payload.verses, &payload.links),
+                    )
+                    .to_html("chapter", &data.template)?;
+                    Ok(HttpResponse::Ok().content_type("text/html").body(body))
+                }),
             )
-            .to_html("chapter", &req.state().template)?;
-            Ok(HttpResponse::Ok().content_type("text/html").body(body))
         }
-        Err(e) => Err(HtmlError(e)),
-    })
-    .responder()
+        Err(_) => Either::B(err(HtmlError(Error::InvalidReference {
+            reference: raw_reference,
+        }))),
+    }
 }
 
 /// Handle HTTP requests for a search HTML page.
 ///
 /// Return an HTML page with search results based on the `q` query
 /// parameter.
-pub fn search(req: &HttpRequest<ServerState>) -> AsyncResponse {
-    let params = req.query();
-    let query = match params.get("q") {
-        Some(q) => q,
-        None => {
-            return Box::new(err(HtmlError(Error::InvalidReference {
-                reference: "".to_string(),
-            })));
-        }
-    }
-    .to_owned();
-
-    let db = &req.state().db;
-    let req = req.to_owned();
-    db.send(SearchMessage {
-        query: query.to_owned(),
-    })
-    .from_err()
-    .and_then(move |res| match res {
-        Ok(result) => {
+pub fn search(
+    data: web::Data<ServerData>,
+    query: web::Query<SearchParams>,
+    req: HttpRequest,
+) -> impl Future<Item = HttpResponse, Error = HtmlError> {
+    let db = data.db.to_owned();
+    let q = query.q.to_owned();
+    web::block(move || sword_drill::search(&query.q, &db.get().unwrap()))
+        .map_err(HtmlError::from)
+        .and_then(move |result| {
             let body = TemplatePayload::new(
-                SearchResultPayload::from_verses_fts(result, &req.drop_state()),
-                Meta::for_search(&query, &req.uri().to_string()),
+                SearchResultPayload::from_verses_fts(result, &req),
+                Meta::for_search(&q, &req.uri().to_string()),
             )
-            .to_html("search-results", &req.state().template)?;
+            .to_html("search-results", &data.template)?;
             Ok(HttpResponse::Ok().content_type("text/html").body(body))
-        }
-        Err(e) => Err(HtmlError(e)),
-    })
-    .responder()
+        })
 }

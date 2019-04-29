@@ -2,24 +2,20 @@
 
 use std::env;
 use std::error::Error;
+use std::io;
 
-use actix_web::{
-    actix::*,
-    fs,
-    http::{ContentEncoding, Method, NormalizePath},
-    middleware, server, App,
-};
+use actix_files;
+use actix_web::{http::ContentEncoding, middleware, web, App, HttpServer};
 use dotenv::dotenv;
 use handlebars::Handlebars;
 
-use db::{build_pool, establish_connection, run_migrations};
+use db::{build_pool, establish_connection, run_migrations, SqliteConnectionPool};
 
-use crate::actors::DbExecutor;
 use crate::controllers::{api, view};
 
 /// Represents the [server state](actix_web.ServerState.html) for the application.
-pub struct ServerState {
-    pub db: Addr<DbExecutor>,
+pub struct ServerData {
+    pub db: SqliteConnectionPool,
     pub template: Handlebars,
 }
 
@@ -32,16 +28,7 @@ fn register_templates() -> Result<Handlebars, Box<dyn Error>> {
     Ok(tpl)
 }
 
-#[derive(Default)]
-struct StaticFileConfig;
-
-impl fs::StaticFileConfig for StaticFileConfig {
-    fn is_use_etag() -> bool {
-        true
-    }
-}
-
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> io::Result<()> {
     dotenv().ok();
 
     // Set up logging
@@ -53,52 +40,48 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Run DB migrations for a new SQLite database
     run_migrations(&establish_connection(&url)).expect("Error running migrations");
 
-    let sys = System::new("biblers");
-    let addr = SyncArbiter::start(num_cpus::get(), move || DbExecutor(build_pool(&url)));
+    let pool = build_pool(&url);
 
-    server::new(move || {
+    HttpServer::new(move || {
         // Create handlebars registry
         let template = register_templates().unwrap();
 
         // Wire up the application
-        App::with_state(ServerState {
-            db: addr.clone(),
-            template,
-        })
-        .default_encoding(ContentEncoding::Gzip)
-        .handler(
-            "/static",
-            fs::StaticFiles::with_config("./web/dist", StaticFileConfig).unwrap(),
-        )
-        .resource("about", |r| r.get().with(view::about))
-        .resource("/", |r| {
-            r.name("bible");
-            r.get().f(view::all_books)
-        })
-        .resource("search", |r| r.get().f(view::search))
-        .resource("{book}", |r| {
-            r.name("book");
-            r.get().f(view::book)
-        })
-        .resource("{reference:.+\\d}", |r| {
-            r.name("reference");
-            r.get().f(view::reference)
-        })
-        .resource("api/search", |r| r.get().f(api::search))
-        .resource("api/{reference}.json", |r| r.get().f(api::reference))
-        .default_resource(|r| r.method(Method::GET).h(NormalizePath::default()))
-        .middleware(middleware::Logger::default())
+        App::new()
+            .wrap(middleware::Compress::new(ContentEncoding::Gzip))
+            .wrap(middleware::Logger::default())
+            .data(ServerData {
+                db: pool.clone(),
+                template,
+            })
+            .service(actix_files::Files::new("/static", "./web/dist").use_etag(true))
+            .service(web::resource("about").to(view::about))
+            .service(
+                web::resource("/")
+                    .name("bible")
+                    .route(web::get().to_async(view::all_books)),
+            )
+            .service(web::resource("search").route(web::get().to_async(view::search)))
+            .service(
+                web::resource("{book}")
+                    .name("book")
+                    .route(web::get().to_async(view::book)),
+            )
+            .service(
+                web::resource("{reference:.+\\d}")
+                    .name("reference")
+                    .route(web::get().to_async(view::reference)),
+            )
+            .service(web::resource("api/search").route(web::get().to_async(api::search)))
+            .service(
+                web::resource("api/{reference}.json").route(web::get().to_async(api::reference)),
+            )
+            .default_service(web::route().to(web::HttpResponse::NotFound))
     })
-    .bind("0.0.0.0:8080")
-    .unwrap()
-    .start();
-
-    let _ = sys.run();
-
-    Ok(())
+    .bind("0.0.0.0:8080")?
+    .run()
 }
 
-mod actors;
 mod controllers;
 mod error;
 mod json_ld;
