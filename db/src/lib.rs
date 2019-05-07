@@ -20,6 +20,8 @@ pub type SqliteConnectionManager = r2d2::ConnectionManager<SqliteConnection>;
 /// Type for a SQLite connection pool.
 pub type SqliteConnectionPool = r2d2::Pool<SqliteConnectionManager>;
 
+pub type DbConnection = SqliteConnection;
+
 /// Result formats for verses.
 pub enum VerseFormat {
     /// Literal HTML.
@@ -74,4 +76,6 @@ where
 
 pub mod models;
 mod schema;
-pub mod sword_drill;
+mod sword_drill;
+
+pub use sword_drill::{SwordDrill, SwordDrillable};

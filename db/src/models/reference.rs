@@ -4,13 +4,13 @@ use std::str::FromStr;
 
 use lazy_static::lazy_static;
 use regex::{Match, Regex};
-use serde_derive::Serialize;
+use serde_derive::{Deserialize, Serialize};
 
 use crate::DbError;
 
 /// Model representing a Bible reference used to look up a
 /// passage in the database.
-#[derive(Clone, Debug, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Reference {
     pub book: String,
     pub chapter: i32,

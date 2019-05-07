@@ -1,10 +1,10 @@
-use serde::ser::{Serialize, Serializer};
-use serde_derive::*;
+use serde::ser;
+use serde_derive::{Deserialize, Serialize};
 use serde_json;
 
 use db::models::{Book, Reference};
 
-use crate::controllers::{AllBooksLinks, BookLinks, Link, VersesLinks, NAME};
+use crate::responder::link::{AllBooksLinks, BookLinks, Link, VersesLinks, NAME};
 
 const CONTEXT: &str = "https://schema.org";
 const CREATOR_FIRST_NAME: &str = "Dustin";
@@ -14,7 +14,7 @@ const LANGUAGE: &str = "en-us";
 const KEYWORDS: &str = "bible,kjv";
 const VERSION: &str = "King James Version";
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Deserialize, Debug)]
 pub enum JsonLd {
     BreadcrumbList(BreadcrumbListJsonLd),
     About(Box<AboutJsonLd>),
@@ -23,10 +23,10 @@ pub enum JsonLd {
     Reference(ReferenceJsonLd),
 }
 
-impl Serialize for JsonLd {
+impl ser::Serialize for JsonLd {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: Serializer,
+        S: ser::Serializer,
     {
         serializer.serialize_str(
             &match self {
@@ -41,7 +41,7 @@ impl Serialize for JsonLd {
     }
 }
 
-#[derive(Clone, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 enum Kind {
     BookSeries,
     Book,
@@ -55,7 +55,7 @@ enum Kind {
 
 /********** json-ld Building Blocks **********/
 
-#[derive(Clone, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct BreadcrumbListJsonLd {
     #[serde(rename = "@context")]
@@ -68,7 +68,7 @@ pub struct BreadcrumbListJsonLd {
 }
 
 impl BreadcrumbListJsonLd {
-    pub fn new(list_items: Vec<ListItemJsonLd>) -> Self {
+    pub(super) fn new(list_items: Vec<ListItemJsonLd>) -> Self {
         Self {
             context: CONTEXT.to_string(),
             item_list_element: list_items,
@@ -77,7 +77,7 @@ impl BreadcrumbListJsonLd {
     }
 }
 
-#[derive(Clone, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct ListItemJsonLd {
     item: String,
@@ -90,7 +90,7 @@ pub struct ListItemJsonLd {
 }
 
 impl ListItemJsonLd {
-    pub fn new(link: &Link, position: i32) -> Self {
+    pub(super) fn new(link: &Link, position: i32) -> Self {
         Self {
             item: format!(url_format!(), link.url),
             kind: Kind::ListItem,
@@ -100,13 +100,13 @@ impl ListItemJsonLd {
     }
 }
 
-#[derive(Clone, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 struct PartJsonLd {
     #[serde(rename = "@id")]
     id: String,
 }
 
-#[derive(Clone, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct PersonJsonLd {
     family_name: String,
@@ -116,7 +116,7 @@ struct PersonJsonLd {
     thing: ThingJsonLd,
 }
 
-#[derive(Clone, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct ThingJsonLd {
     #[serde(rename = "@context")]
@@ -146,7 +146,7 @@ impl Default for ThingJsonLd {
 
 /********** Page Implementations **********/
 
-#[derive(Clone, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct AboutJsonLd {
     creator: PersonJsonLd,
@@ -157,7 +157,7 @@ pub struct AboutJsonLd {
 }
 
 impl AboutJsonLd {
-    pub fn new() -> Self {
+    pub(super) fn new() -> Self {
         let person_thing = ThingJsonLd {
             id: CREATOR_URL.to_string(),
             kind: Kind::Person,
@@ -186,7 +186,7 @@ impl AboutJsonLd {
     }
 }
 
-#[derive(Clone, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct AllBooksJsonLd {
     has_part: Vec<PartJsonLd>,
@@ -199,7 +199,7 @@ pub struct AllBooksJsonLd {
 }
 
 impl AllBooksJsonLd {
-    pub fn new(links: &AllBooksLinks) -> Self {
+    pub(super) fn new(links: &AllBooksLinks) -> Self {
         let has_part = links
             .books
             .iter()
@@ -224,7 +224,7 @@ impl AllBooksJsonLd {
     }
 }
 
-#[derive(Clone, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct BookJsonLd {
     has_part: Vec<PartJsonLd>,
@@ -237,7 +237,7 @@ pub struct BookJsonLd {
 }
 
 impl BookJsonLd {
-    pub fn new(book: &Book, links: &BookLinks) -> Self {
+    pub(super) fn new(book: &Book, links: &BookLinks) -> Self {
         let has_part = links
             .chapters
             .iter()
@@ -266,7 +266,7 @@ impl BookJsonLd {
     }
 }
 
-#[derive(Clone, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct ReferenceJsonLd {
     is_part_of: PartJsonLd,
@@ -277,7 +277,7 @@ pub struct ReferenceJsonLd {
 }
 
 impl ReferenceJsonLd {
-    pub fn new(reference: &Reference, links: &VersesLinks) -> Self {
+    pub(super) fn new(reference: &Reference, links: &VersesLinks) -> Self {
         let thing = ThingJsonLd {
             id: format!(url_format!(), links.current.url),
             kind: Kind::Chapter,

@@ -3,10 +3,10 @@ use diesel::deserialize::{self, FromSql, FromSqlRow, Queryable};
 use diesel::row::Row;
 use diesel::sql_types::Text;
 use diesel::sqlite::Sqlite;
-use serde_derive::Serialize;
+use serde_derive::{Deserialize, Serialize};
 
 /// Model representing a Bible verse.
-#[derive(Clone, Debug, Queryable, Serialize)]
+#[derive(Clone, Debug, Deserialize, Queryable, Serialize)]
 pub struct Verse {
     pub id: i32,
     pub book: i32,
@@ -17,7 +17,7 @@ pub struct Verse {
 
 /// Enum for the testaments in the Bible (Old or New). This is mapped
 /// to a column in the database table `books`.
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum Testament {
     Old,
     New,
@@ -50,7 +50,7 @@ impl Queryable<Text, Sqlite> for Testament {
 }
 
 /// Model representing a book in the Bible.
-#[derive(Clone, Debug, Queryable, Serialize)]
+#[derive(Clone, Debug, Deserialize, Queryable, Serialize)]
 pub struct Book {
     pub id: i32,
     pub name: String,
@@ -59,7 +59,7 @@ pub struct Book {
 }
 
 /// Model representing a Bible book's abbreviation.
-#[derive(Clone, Debug, Queryable)]
+#[derive(Clone, Debug, Deserialize, Queryable)]
 pub struct BookAbbreviation {
     pub id: i32,
     pub book_id: i32,
@@ -67,7 +67,7 @@ pub struct BookAbbreviation {
 }
 
 /// Model representing a full text search Bible verse.
-#[derive(Clone, Debug, Queryable, Serialize)]
+#[derive(Clone, Debug, Deserialize, Queryable, Serialize)]
 pub struct VerseFTS {
     pub book: i32,
     pub chapter: i32,
