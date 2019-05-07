@@ -1,80 +1,35 @@
-use std::convert::From;
-
-use actix_web::error::BlockingError;
 use actix_web::web;
 use actix_web::web::{HttpRequest, HttpResponse};
-use actix_web::ResponseError;
-use failure::Fail;
 use futures::future::{err, Either, Future};
 
 use db::models::Reference;
-use db::{sword_drill, DbError, VerseFormat};
+use db::{SwordDrillable, VerseFormat};
 
-use crate::controllers::{ErrorPayload, SearchParams, SearchResultPayload, VersesPayload};
-use crate::error::Error;
+use crate::controllers::SearchParams;
+use crate::error::JsonError;
+use crate::responder::{SearchResultData, VersesData};
 use crate::ServerData;
 
-#[derive(Fail, Debug)]
-#[fail(display = "Json Error")]
-pub struct JsonError(Error);
-
-impl From<Error> for JsonError {
-    fn from(f: Error) -> Self {
-        JsonError(f)
-    }
-}
-
-impl From<DbError> for JsonError {
-    fn from(_: DbError) -> Self {
-        JsonError(Error::Db)
-    }
-}
-
-impl ResponseError for JsonError {
-    fn error_response(&self) -> HttpResponse {
-        match self.0 {
-            Error::Actix { .. } | Error::Db | Error::Template => {
-                HttpResponse::InternalServerError().json(ErrorPayload::from_error(&self.0))
-            }
-            Error::BookNotFound { .. } => HttpResponse::Ok().json(SearchResultPayload::empty()),
-            Error::InvalidReference { .. } => {
-                HttpResponse::BadRequest().json(ErrorPayload::from_error(&self.0))
-            }
-        }
-    }
-}
-
-impl From<BlockingError<DbError>> for JsonError {
-    fn from(e: BlockingError<DbError>) -> Self {
-        match e {
-            BlockingError::Canceled => JsonError(Error::Actix {
-                cause: e.to_string(),
-            }),
-            BlockingError::Error(db_e) => match db_e {
-                DbError::BookNotFound { book } => JsonError(Error::BookNotFound { book }),
-                _ => JsonError(Error::Db),
-            },
-        }
-    }
-}
-
-pub fn reference(
+pub fn reference<SD>(
     data: web::Data<ServerData>,
     path: web::Path<(String,)>,
     req: HttpRequest,
-) -> impl Future<Item = HttpResponse, Error = JsonError> {
+) -> impl Future<Item = HttpResponse, Error = JsonError>
+where
+    SD: SwordDrillable,
+{
     let db = data.db.to_owned();
     match path.0.parse::<Reference>() {
         Ok(reference) => {
-            let payload_reference = reference.to_owned();
+            let data_reference = reference.to_owned();
             Either::A(
                 web::block(move || {
-                    sword_drill::verses(&reference, &VerseFormat::PlainText, &db.get().unwrap())
+                    SD::verses(&reference, &VerseFormat::PlainText, &db.get().unwrap())
                 })
                 .map_err(JsonError::from)
                 .and_then(move |result| {
-                    let payload = VersesPayload::new(result, payload_reference, &req);
-                    Ok(HttpResponse::Ok().json(payload))
+                    let verses_data = VersesData::new(result, data_reference, &req);
+                    Ok(HttpResponse::Ok().json(verses_data))
                 }),
             )
         }
@@ -82,35 +37,65 @@ pub fn reference(
     }
 }
 
-pub fn search(
+pub fn search<SD>(
     data: web::Data<ServerData>,
     query: web::Query<SearchParams>,
     req: HttpRequest,
-) -> impl Future<Item = HttpResponse, Error = JsonError> {
+) -> impl Future<Item = HttpResponse, Error = JsonError>
+where
+    SD: SwordDrillable,
+{
     let db = data.db.to_owned();
 
     // Check if query can be parsed as a reference
     if let Ok(reference) = query.q.parse::<Reference>() {
         Either::A(
-            web::block(move || {
-                sword_drill::verses(&reference, &VerseFormat::PlainText, &db.get().unwrap())
-            })
-            .map_err(JsonError::from)
-            .and_then(move |results| {
-                Ok(HttpResponse::Ok().json(SearchResultPayload::from_verses(results, &req)))
-            }),
+            web::block(move || SD::verses(&reference, &VerseFormat::PlainText, &db.get().unwrap()))
+                .map_err(JsonError::from)
+                .and_then(move |results| {
+                    Ok(HttpResponse::Ok().json(SearchResultData::from_verses(results, &req)))
+                }),
         )
     // Otherwise look for word matches
     } else {
         Either::B(
-            web::block(move || sword_drill::search(&query.q, &db.get().unwrap()))
+            web::block(move || SD::search(&query.q, &db.get().unwrap()))
                 .map_err(JsonError::from)
                 .and_then(move |results| {
-                    Ok(
-                        HttpResponse::Ok()
-                            .json(SearchResultPayload::from_verses_fts(results, &req)),
-                    )
+                    Ok(HttpResponse::Ok().json(SearchResultData::from_verses_fts(results, &req)))
                 }),
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::responder::{SearchResultData, VersesData};
+    use crate::test::json_response;
+
+    #[test]
+    fn reference() {
+        let result: VersesData = json_response("/api/psalms.119.105.json");
+        assert_eq!(
+            result.verses[0].words,
+            "NUN. Thy word is a lamp unto my feet, and a light unto my path."
+        );
+    }
+
+    #[test]
+    fn search() {
+        // By words
+        let result: SearchResultData = json_response("/api/search?q=word");
+        assert_eq!(
+            result.matches[0].text,
+            "NUN. Thy word is a lamp unto my feet, and a <em>light</em> unto my path."
+        );
+
+        // By reference
+        let result: SearchResultData = json_response("/api/search?q=psalms%20119:105");
+        assert_eq!(
+            result.matches[0].text,
+            "NUN. Thy word is a lamp unto my feet, and a light unto my path."
+        );
     }
 }

@@ -9,11 +9,11 @@ use actix_web::{http::ContentEncoding, middleware, web, App, HttpServer};
 use dotenv::dotenv;
 use handlebars::Handlebars;
 
-use db::{build_pool, establish_connection, run_migrations, SqliteConnectionPool};
+use db::{build_pool, establish_connection, run_migrations, SqliteConnectionPool, SwordDrill};
 
 use crate::controllers::{api, view};
 
-/// Represents the [server state](actix_web.ServerState.html) for the application.
+/// Represents the [server data](actix_web.web.Data.html) for the application.
 pub struct ServerData {
     pub db: SqliteConnectionPool,
     pub template: Handlebars,
@@ -59,22 +59,25 @@ fn main() -> io::Result<()> {
             .service(
                 web::resource("/")
                     .name("bible")
-                    .route(web::get().to_async(view::all_books)),
+                    .route(web::get().to_async(view::all_books::<SwordDrill>)),
             )
-            .service(web::resource("search").route(web::get().to_async(view::search)))
+            .service(web::resource("search").route(web::get().to_async(view::search::<SwordDrill>)))
             .service(
                 web::resource("{book}")
                     .name("book")
-                    .route(web::get().to_async(view::book)),
+                    .route(web::get().to_async(view::book::<SwordDrill>)),
             )
             .service(
                 web::resource("{reference:.+\\d}")
                     .name("reference")
-                    .route(web::get().to_async(view::reference)),
+                    .route(web::get().to_async(view::reference::<SwordDrill>)),
             )
-            .service(web::resource("api/search").route(web::get().to_async(api::search)))
             .service(
-                web::resource("api/{reference}.json").route(web::get().to_async(api::reference)),
+                web::resource("api/search").route(web::get().to_async(api::search::<SwordDrill>)),
+            )
+            .service(
+                web::resource("api/{reference}.json")
+                    .route(web::get().to_async(api::reference::<SwordDrill>)),
             )
             .default_service(web::route().to(web::HttpResponse::NotFound))
     })
@@ -84,4 +87,7 @@ fn main() -> io::Result<()> {
 
 mod controllers;
 mod error;
-mod json_ld;
+mod macros;
+mod responder;
+#[cfg(test)]
+mod test;

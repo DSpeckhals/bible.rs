@@ -6,7 +6,7 @@ use std::io::{self, Write};
 use dotenv::dotenv;
 
 use db::models::Reference;
-use db::{establish_connection, sword_drill, VerseFormat};
+use db::{establish_connection, SwordDrill, SwordDrillable, VerseFormat};
 
 fn main() -> io::Result<()> {
     let matches = clap_app!(biblerscli =>
@@ -27,7 +27,7 @@ fn main() -> io::Result<()> {
         .unwrap_or("John 3:16")
         .parse()
         .expect("Invalid reference");
-    let result = sword_drill::verses(&reference, &VerseFormat::PlainText, &conn);
+    let result = SwordDrill::verses(&reference, &VerseFormat::PlainText, &conn);
 
     match result {
         Ok((book, verses)) => {
