@@ -1,5 +1,7 @@
 # Bible.rs
 
+[![Build Status](https://travis-ci.com/DSpeckhals/bible.rs.svg?branch=master)](https://travis-ci.com/DSpeckhals/bible.rs)
+
 > A Bible server written in Rust using Actix Web and Diesel
 
 I've often found myself studying the Bible and wanting to simply "find that

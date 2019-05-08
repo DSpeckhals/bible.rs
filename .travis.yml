@@ -1,0 +1,34 @@
+language: rust
+cache: cargo
+dist: xenial
+rust:
+  - stable
+  - beta
+  - nightly
+
+env:
+  - DATABASE_URL=/tmp/biblers.db
+
+addons:
+  apt:
+    packages:
+      - autoconf
+      - curl
+      - gcc
+      - make
+      - tcl
+      - clang-3.9
+      - libclang-3.9-dev
+      - llvm-3.9-dev
+
+before_install:
+  - ./scripts/ci/install-sqlite.sh
+
+matrix:
+  fast_finish: true
+  allow_failures:
+    - rust: nightly
+
+notifications:
+  email:
+    on_success: never
