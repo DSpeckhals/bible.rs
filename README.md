@@ -33,7 +33,7 @@ version of the Bible. The website is lightweight, with JavaScript only used
 for the search box (though it is also fully usable with JavaScript disabled).
 The HTML is meant to be semantic and thus easily machine parsable.
 
-The "brains" of Bible.rs are written in [Rust]("https://www.rust-lang.org/en-US/"),
+The "brains" of Bible.rs are written in [Rust]("https://www.rust-lang.org/"),
 a programming language I had toyed around with, but never did anything
 substantial with. That's why this is called "Bible.*rs*": "rs" is the file
 extension for Rust source files. The data is stored in a single [SQLite](https://www.sqlite.org/index.html)
