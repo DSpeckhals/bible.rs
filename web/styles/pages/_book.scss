@@ -1,6 +1,7 @@
 .book {
     ol > li {
-        width: 4rem;
-        height: 4rem;
+        max-width: 4rem;
+        flex: 12%;
+        font-size: 1.25rem;
     }
 }
