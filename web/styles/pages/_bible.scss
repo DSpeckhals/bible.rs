@@ -1,15 +1,10 @@
 .all-books {
     ol > li {
-        width: 28%;
-        height: 4rem;
+        flex: 1 30%;
+        max-width: 14rem;
+
         > a {
             font-size: 1rem;
-        }
-    }
-
-    @media screen and (max-width: 600px) {
-        ol > li {
-            width: 42%;
         }
     }
 }

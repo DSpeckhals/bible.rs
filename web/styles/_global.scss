@@ -25,23 +25,24 @@ a {
 }
 
 ol {
-    margin: 0;
-    padding: 0;
-    text-align: center;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+
     > li {
-        display: inline-block;
-        list-style-type: none;
         margin: .5rem;
         border: 1px solid $mid-grey;
-        text-align: center;
+
         > a {
-            color: $mid-grey;
-            font-size: 1.25rem;
             display: block;
+            color: $mid-grey;
             line-height: 4rem;
+            text-align: center;
+
             &:hover {
                 background: $light-grey;
             }
+
             &:active {
                 background: $mid-grey;
                 color: rgb(255, 255, 255);
@@ -50,38 +51,44 @@ ol {
     }
 }
 
+main {
+    display: flex;
+    justify-content: space-around;
+}
+
 .container {
-    max-width: 35rem;
-    margin: 2rem auto;
+    margin: 2rem 0;
+    width: 35rem;
 }
 
 nav.top-nav {
-    text-align: center;
+    display: flex;
+    justify-content: center;
 }
 
 .heading, .footing {
-    .previous {
-        display: inline-block;
-        width: 15%;
-        text-align: left;
-    }
-    h1, .book {
-        display: inline-block;
-        width: 67%;
-        text-align: center;
-    }
-    .next {
-        display: inline-block;
-        width: 15%;
-        text-align: right;
-    }
-}
-
-img.logo {
-    vertical-align: middle;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 footer {
-    text-align: center;
+    display: flex;
+    justify-content: center;
     margin-bottom: 2rem;
+}
+
+@media print {
+    #search-form,
+    .previous > a,
+    .next > a,
+    .footing .book,
+    footer {
+        display: none;
+    }
+
+    .container {
+        width: auto;
+        margin: 0;
+    }
 }
