@@ -1,5 +1,5 @@
 ################### SQLite3 Build ###################
-FROM debian:stretch-slim as sqlite-build
+FROM debian:buster-slim as sqlite-build
 
 WORKDIR /root
 
@@ -29,14 +29,14 @@ RUN cd sqlite-build \
 
 
 ################### Rust Build ###################
-FROM rust:latest as rust-build
+FROM rust:buster as rust-build
 
 # Clang/LLVM are required for building the libsqlite3-sys bindings
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get -y install \
-        clang-3.9 \
-        libclang-3.9-dev \
-        llvm-3.9-dev \
+        clang-7 \
+        libclang-7-dev \
+        llvm-7-dev \
         sassc \
     && rm -rf /var/lib/apt/lists/*
 
@@ -74,7 +74,7 @@ RUN mkdir -p web/dist/css \
 
 
 ################### Server Build ###################
-FROM debian:stretch-slim
+FROM debian:buster-slim
 
 WORKDIR /root
 

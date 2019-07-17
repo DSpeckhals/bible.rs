@@ -27,7 +27,10 @@ pub enum Error {
     #[fail(display = "There was a database error.")]
     Db,
 
-    #[fail(display = "'{}' is not a valid Bible reference.", reference)]
+    #[fail(
+        display = "'{}' is not a valid Bible reference.",
+        reference
+    )]
     InvalidReference { reference: String },
 
     #[fail(display = "There was an error rendering the HTML page.")]
@@ -35,7 +38,7 @@ pub enum Error {
 }
 
 #[derive(Fail, Debug)]
-#[fail(display = "Json Error")]
+#[fail(display = "Error: {}", _0)]
 /// Error to display as JSON
 pub struct JsonError(Error);
 
@@ -46,8 +49,12 @@ impl From<Error> for JsonError {
 }
 
 impl From<DbError> for JsonError {
-    fn from(_: DbError) -> Self {
-        JsonError(Error::Db)
+    fn from(e: DbError) -> Self {
+        JsonError(match e {
+            DbError::InvalidReference { reference } => Error::InvalidReference { reference },
+            DbError::BookNotFound { book } => Error::BookNotFound { book },
+            _ => Error::Db {},
+        })
     }
 }
 
@@ -55,6 +62,7 @@ impl ResponseError for JsonError {
     fn error_response(&self) -> HttpResponse {
         match self.0 {
             Error::Actix { .. } | Error::Db | Error::Template => {
+                error!("Unhandled: {}", &self.0);
                 HttpResponse::InternalServerError().json(ErrorData::from_error(&self.0))
             }
             Error::BookNotFound { .. } => HttpResponse::Ok().json(SearchResultData::empty()),
