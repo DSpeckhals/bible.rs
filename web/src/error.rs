@@ -27,10 +27,7 @@ pub enum Error {
     #[fail(display = "There was a database error.")]
     Db,
 
-    #[fail(
-        display = "'{}' is not a valid Bible reference.",
-        reference
-    )]
+    #[fail(display = "'{}' is not a valid Bible reference.", reference)]
     InvalidReference { reference: String },
 
     #[fail(display = "There was an error rendering the HTML page.")]
