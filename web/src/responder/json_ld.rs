@@ -80,7 +80,7 @@ impl BreadcrumbListJsonLd {
 #[derive(Clone, Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct ListItemJsonLd {
-    item: String,
+    item: ThingJsonLd,
 
     #[serde(rename = "@type")]
     kind: Kind,
@@ -92,7 +92,18 @@ pub struct ListItemJsonLd {
 impl ListItemJsonLd {
     pub(super) fn new(link: &Link, position: i32) -> Self {
         Self {
-            item: format!(url_format!(), link.url),
+            item: ThingJsonLd {
+                id: format!(url_format!(), link.url),
+                name: link.label.to_owned(),
+                url: format!(url_format!(), link.url),
+                kind: match position {
+                    1 => Kind::BookSeries,
+                    2 => Kind::Book,
+                    3 => Kind::Chapter,
+                    _ => Kind::Thing,
+                },
+                ..ThingJsonLd::default()
+            },
             kind: Kind::ListItem,
             name: link.label.to_owned(),
             position,
