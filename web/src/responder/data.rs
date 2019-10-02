@@ -24,6 +24,13 @@ pub struct ErrorData {
 }
 
 impl ErrorData {
+    /// Create new error data with a message
+    pub fn new(m: &str) -> Self {
+        Self {
+            message: m.to_string()
+        }
+    }
+
     /// Creates new error data from a (db.Error.html)
     pub fn from_error(e: &Error) -> Self {
         Self {

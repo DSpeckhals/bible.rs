@@ -24,14 +24,29 @@ pub enum Error {
     #[fail(display = "'{}' was not found.", book)]
     BookNotFound { book: String },
 
-    #[fail(display = "There was a database error.")]
-    Db,
+    #[fail(display = "There was a database error. Root cause: {}", cause)]
+    Db { cause: String },
 
     #[fail(display = "'{}' is not a valid Bible reference.", reference)]
     InvalidReference { reference: String },
 
     #[fail(display = "There was an error rendering the HTML page.")]
     Template,
+}
+
+impl From<DbError> for Error {
+    fn from(f: DbError) -> Self {
+        match f {
+            DbError::InvalidReference { reference } => Error::InvalidReference { reference },
+            DbError::BookNotFound { book } => Error::BookNotFound { book },
+            DbError::Other { cause } => Error::Db {
+                cause: cause.to_string(),
+            },
+            _ => Error::Db {
+                cause: f.to_string(),
+            },
+        }
+    }
 }
 
 #[derive(Fail, Debug)]
@@ -46,21 +61,21 @@ impl From<Error> for JsonError {
 }
 
 impl From<DbError> for JsonError {
-    fn from(e: DbError) -> Self {
-        JsonError(match e {
-            DbError::InvalidReference { reference } => Error::InvalidReference { reference },
-            DbError::BookNotFound { book } => Error::BookNotFound { book },
-            _ => Error::Db {},
-        })
+    fn from(f: DbError) -> Self {
+        JsonError(f.into())
     }
 }
 
 impl ResponseError for JsonError {
     fn error_response(&self) -> HttpResponse {
-        match self.0 {
-            Error::Actix { .. } | Error::Db | Error::Template => {
+        match &self.0 {
+            Error::Actix { .. } | Error::Template => {
                 error!("Unhandled: {}", &self.0);
                 HttpResponse::InternalServerError().json(ErrorData::from_error(&self.0))
+            }
+            Error::Db { cause } => {
+                error!("Database error: {}", cause);
+                HttpResponse::InternalServerError().json(ErrorData::new(cause))
             }
             Error::BookNotFound { .. } => HttpResponse::Ok().json(SearchResultData::empty()),
             Error::InvalidReference { .. } => {
@@ -71,15 +86,12 @@ impl ResponseError for JsonError {
 }
 
 impl From<BlockingError<DbError>> for JsonError {
-    fn from(e: BlockingError<DbError>) -> Self {
-        match e {
+    fn from(f: BlockingError<DbError>) -> Self {
+        match f {
             BlockingError::Canceled => JsonError(Error::Actix {
-                cause: e.to_string(),
+                cause: f.to_string(),
             }),
-            BlockingError::Error(db_e) => match db_e {
-                DbError::BookNotFound { book } => JsonError(Error::BookNotFound { book }),
-                _ => JsonError(Error::Db),
-            },
+            BlockingError::Error(db_e) => db_e.into(),
         }
     }
 }
@@ -101,9 +113,14 @@ lazy_static! {
 pub struct HtmlError(pub Error);
 
 impl From<Error> for HtmlError {
-    /// Transforms an HtmlError into an actix_web HTTP Response.
     fn from(f: Error) -> Self {
         HtmlError(f)
+    }
+}
+
+impl From<DbError> for HtmlError {
+    fn from(f: DbError) -> Self {
+        HtmlError(f.into())
     }
 }
 
@@ -114,7 +131,8 @@ impl ResponseError for HtmlError {
             .unwrap();
 
         match self.0 {
-            Error::Actix { .. } | Error::Db | Error::Template => {
+            Error::Actix { .. } | Error::Db { .. } | Error::Template => {
+                error!("Unhandled: {}", &self.0);
                 HttpResponse::InternalServerError()
             }
             Error::BookNotFound { .. } => HttpResponse::NotFound(),
@@ -126,17 +144,12 @@ impl ResponseError for HtmlError {
 }
 
 impl From<BlockingError<DbError>> for HtmlError {
-    fn from(e: BlockingError<DbError>) -> Self {
-        error!("{}", e);
-        HtmlError(match e {
+    fn from(f: BlockingError<DbError>) -> Self {
+        HtmlError(match f {
             BlockingError::Canceled => Error::Actix {
-                cause: e.to_string(),
+                cause: f.to_string(),
             },
-            BlockingError::Error(db_e) => match db_e {
-                DbError::BookNotFound { book } => Error::BookNotFound { book },
-                DbError::InvalidReference { reference } => Error::InvalidReference { reference },
-                _ => Error::Db,
-            },
+            BlockingError::Error(db_e) => db_e.into(),
         })
     }
 }

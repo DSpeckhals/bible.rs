@@ -138,7 +138,7 @@ impl SwordDrillable for SwordDrill {
         let mut query = ALPHA_NUM.replace_all(query, "").to_string();
 
         // Don't even try to run the query if there are no characters
-        if query.is_empty() {
+        if query.trim().is_empty() {
             return Ok(vec![]);
         }
 
@@ -241,7 +241,11 @@ mod tests {
                 assert_eq!(result[0].1.name, "Jeremiah");
             }
 
-
+            // Search - Leading number followed by a space returns an empty result
+            {
+                let result = SwordDrill::search("1 ", &conn)?;
+                assert_eq!(result.len(), 0);
+            }
 
             // Search - Phrase
             {

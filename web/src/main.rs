@@ -10,6 +10,7 @@ use dotenv::dotenv;
 use handlebars::Handlebars;
 
 use db::{build_pool, establish_connection, run_migrations, SqliteConnectionPool, SwordDrill};
+use sentry_actix::SentryMiddleware;
 
 use crate::controllers::{api, view};
 
@@ -35,7 +36,18 @@ fn main() -> io::Result<()> {
     env::set_var("RUST_LOG", "info");
     env_logger::init();
 
+    // Get env configuration
+    let capture_errors = env::var("CAPTURE_ERRORS")
+        .unwrap_or_else(|_| "true".to_string())
+        .parse::<bool>()
+        .expect("Invalid value for CAPTURE_ERRORS. Must be 'true' or 'false.'");
     let url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+
+    // Set up sentry
+    let _guard = sentry::init("https://b2dc20aad7f64ae9a9c5e8a77e947d9c@sentry.io/1768339");
+    if capture_errors {
+        sentry::integrations::panic::register_panic_handler();
+    }
 
     // Run DB migrations for a new SQLite database
     run_migrations(&establish_connection(&url)).expect("Error running migrations");
@@ -49,6 +61,11 @@ fn main() -> io::Result<()> {
         // Wire up the application
         App::new()
             .wrap(middleware::Compress::new(ContentEncoding::Gzip))
+            .wrap(
+                SentryMiddleware::new()
+                    .emit_header(true)
+                    .capture_server_errors(capture_errors),
+            )
             .wrap(middleware::Logger::default())
             .data(ServerData {
                 db: pool.clone(),
