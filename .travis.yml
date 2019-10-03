@@ -7,7 +7,7 @@ rust:
   - nightly
 
 env:
-  - DATABASE_URL=/tmp/biblers.db
+  - DATABASE_URL=/tmp/biblers.db CAPTURE_ERRORS=false
 
 addons:
   apt:
