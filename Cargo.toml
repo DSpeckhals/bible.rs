@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "sentry_actix",
     "cli",
     "db",
     "web"
