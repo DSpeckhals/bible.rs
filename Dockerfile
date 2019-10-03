@@ -29,7 +29,7 @@ RUN cd sqlite-build \
 
 
 ################### Rust Build ###################
-FROM rust:buster as rust-build
+FROM rust:latest as rust-build
 
 # Clang/LLVM are required for building the libsqlite3-sys bindings
 RUN apt-get update \
@@ -48,11 +48,14 @@ RUN USER=root cargo new --bin biblers
 COPY --from=sqlite-build /usr/local/lib/libsqlite3.so.0 /usr/lib/x86_64-linux-gnu/
 
 COPY ./Cargo.lock ./Cargo.toml ./
+COPY ./sentry_actix/Cargo.toml ./sentry_actix/Cargo.toml
 COPY ./cli/Cargo.toml ./cli/Cargo.toml
 COPY ./db/Cargo.toml ./db/Cargo.toml
 COPY ./web/Cargo.toml ./web/Cargo.toml
 
-RUN mkdir cli/src \
+RUN mkdir sentry_actix/src \
+    && echo "fn main() {}" > sentry_actix/src/main.rs \
+    && mkdir cli/src \
     && echo "fn main() {}" > cli/src/main.rs \
     && mkdir db/src \
     && echo "fn main() {}" > db/src/main.rs \
@@ -63,6 +66,7 @@ RUN cargo build --release \
     && rm -rf db/src web/src
 
 # Build the crate
+COPY ./sentry_actix/src ./sentry_actix/src
 COPY ./db/src ./db/src
 COPY ./web/src ./web/src
 RUN cargo build --release -p web
@@ -75,6 +79,11 @@ RUN mkdir -p web/dist/css \
 
 ################### Server Build ###################
 FROM debian:buster-slim
+
+# Clang/LLVM are required for building the libsqlite3-sys bindings
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get -y install libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /root
 
