@@ -37,14 +37,12 @@ fn main() -> io::Result<()> {
     env_logger::init();
 
     // Get env configuration
-    let capture_errors = env::var("CAPTURE_ERRORS")
-        .unwrap_or_else(|_| "true".to_string())
-        .parse::<bool>()
-        .expect("Invalid value for CAPTURE_ERRORS. Must be 'true' or 'false.'");
-    let url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let sentry_dsn = env::var("SENTRY_DSN").ok();
+    let url = env::var("DATABASE_URL").unwrap_or_else(|_| "/tmp/biblers.db".to_string());
 
     // Set up sentry
-    let _guard = sentry::init("https://b2dc20aad7f64ae9a9c5e8a77e947d9c@sentry.io/1768339");
+    let capture_errors = sentry_dsn.is_some();
+    let _guard = sentry::init(sentry_dsn);
     if capture_errors {
         sentry::integrations::panic::register_panic_handler();
     }
