@@ -94,9 +94,10 @@ where
                         let verses_data = VersesData::new(result, data_reference, &req);
 
                         if verses_data.verses.is_empty() {
-                            Err(Error::InvalidReference {
+                            return Err(Error::InvalidReference {
                                 reference: raw_reference,
-                            })?;
+                            }
+                            .into());
                         }
 
                         let body = TemplateData::new(
