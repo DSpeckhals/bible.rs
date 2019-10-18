@@ -38,7 +38,7 @@ fn main() -> io::Result<()> {
 
     // Get env configuration
     let sentry_dsn = env::var("SENTRY_DSN").ok();
-    let url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let url = env::var("DATABASE_URL").unwrap_or_else(|_| "/tmp/biblers.db".to_string());
 
     // Set up sentry
     let capture_errors = sentry_dsn.is_some();
