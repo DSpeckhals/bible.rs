@@ -2,15 +2,21 @@
 //! Currently axix-web 1.X is unsupported with the official sentry_actix middleware.
 //! See https://github.com/getsentry/sentry-rust/issues/143
 
+use std::future::Future;
+use std::pin::Pin;
 use std::sync::Arc;
+use std::task::{Context, Poll};
 
-use futures::{Future, Poll};
+use futures::future::LocalBoxFuture;
+use pin_project::pin_project;
 use sentry::{Hub, Scope};
 
-/// A future that bind a `Hub` to its execution.
+/// A future that binds a `Hub` to its execution.
+#[pin_project]
 #[derive(Debug)]
 pub struct SentryFuture<F> {
     hub: Arc<Hub>,
+    #[pin]
     future: F,
 }
 
@@ -26,11 +32,10 @@ impl<F> Future for SentryFuture<F>
 where
     F: Future,
 {
-    type Item = F::Item;
-    type Error = F::Error;
+    type Output = F::Output;
 
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        Hub::run(self.hub.clone(), || self.future.poll())
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
+        Hub::run(self.hub.clone(), || self.as_mut().project().future.poll(cx))
     }
 }
 
@@ -75,7 +80,7 @@ pub trait ToSentryScope {
 ///
 /// This future cannot be shared across threads, which makes it not eligible for the use in thread
 /// pools.
-pub type ResultFuture<T, E> = Box<dyn Future<Item = T, Error = E>>;
+pub type ResultFuture<T, E> = LocalBoxFuture<'static, Result<T, E>>;
 
 mod middleware;
 pub use middleware::Sentry as SentryMiddleware;
