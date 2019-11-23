@@ -1,5 +1,6 @@
 use std::str;
 
+use actix_http_test::block_on;
 use actix_web::{test, web, App, HttpRequest, HttpResponse};
 use handlebars::Handlebars;
 use serde::de::DeserializeOwned;
@@ -14,7 +15,7 @@ pub fn with_service<F>(f: F)
 where
     F: Fn(HttpRequest) + Clone + 'static,
 {
-    let mut srv = test::init_service(
+    let srv = test::init_service(
         App::new()
             .service(web::resource("/test").to(move |req: HttpRequest| {
                 f(req);
@@ -24,7 +25,14 @@ where
             .service(web::resource("{book}").name("book"))
             .service(web::resource("{reference:.+\\d}").name("reference")),
     );
-    test::call_service(&mut srv, test::TestRequest::with_uri("/test").to_request());
+
+    block_on(async move {
+        test::call_service(
+            &mut srv.await,
+            test::TestRequest::with_uri("/test").to_request(),
+        )
+        .await
+    });
 }
 
 fn test_book() -> Book {
@@ -84,7 +92,7 @@ pub fn json_response<T>(uri: &str) -> T
 where
     T: DeserializeOwned,
 {
-    let mut srv = test::init_service(
+    let srv = test::init_service(
         App::new()
             .data(ServerData {
                 db: build_pool(":memory:"),
@@ -93,14 +101,13 @@ where
             .service(web::resource("/").name("bible"))
             .service(web::resource("{book}").name("book"))
             .service(web::resource("{reference:.+\\d}").name("reference"))
-            .service(web::resource("api/search").to_async(api::search::<TestSwordDrill>))
-            .service(
-                web::resource("api/{reference}.json").to_async(api::reference::<TestSwordDrill>),
-            ),
+            .service(web::resource("api/search").to(api::search::<TestSwordDrill>))
+            .service(web::resource("api/{reference}.json").to(api::reference::<TestSwordDrill>)),
     );
 
     let req = test::TestRequest::with_uri(uri).to_request();
-    test::read_response_json(&mut srv, req)
+
+    block_on(async move { test::read_response_json(&mut srv.await, req).await })
 }
 
 pub fn html_response(uri: &str) -> String {
@@ -110,7 +117,7 @@ pub fn html_response(uri: &str) -> String {
         .register_templates_directory(".hbs", "./templates/")
         .expect("Could not register template files");
 
-    let mut srv = test::init_service(
+    let srv = test::init_service(
         App::new()
             .data(ServerData {
                 db: build_pool(":memory:"),
@@ -120,26 +127,27 @@ pub fn html_response(uri: &str) -> String {
             .service(
                 web::resource("/")
                     .name("bible")
-                    .to_async(view::all_books::<TestSwordDrill>),
+                    .to(view::all_books::<TestSwordDrill>),
             )
             .service(
                 web::resource("{book}")
                     .name("book")
-                    .to_async(view::book::<TestSwordDrill>),
+                    .to(view::book::<TestSwordDrill>),
             )
             .service(
                 web::resource("{reference:.+\\d}")
                     .name("reference")
-                    .to_async(view::reference::<TestSwordDrill>),
+                    .to(view::reference::<TestSwordDrill>),
             )
-            .service(web::resource("api/search").to_async(api::search::<TestSwordDrill>))
-            .service(
-                web::resource("api/{reference}.json").to_async(api::reference::<TestSwordDrill>),
-            ),
+            .service(web::resource("api/search").to(api::search::<TestSwordDrill>))
+            .service(web::resource("api/{reference}.json").to(api::reference::<TestSwordDrill>)),
     );
 
     let req = test::TestRequest::with_uri(uri).to_request();
-    str::from_utf8(&test::read_response(&mut srv, req))
-        .expect("Could not convert response to UTF8")
-        .to_string()
+
+    block_on(async move {
+        str::from_utf8(&test::read_response(&mut srv.await, req).await)
+            .expect("Could not convert response to UTF8")
+            .to_string()
+    })
 }

@@ -1,9 +1,9 @@
 use std::convert::From;
 
-use actix_web::error::BlockingError;
 use actix_web::web::HttpResponse;
 use actix_web::ResponseError;
 use failure::Fail;
+use futures::channel::oneshot::Canceled;
 use handlebars::Handlebars;
 use lazy_static::lazy_static;
 use log::error;
@@ -66,6 +66,14 @@ impl From<DbError> for JsonError {
     }
 }
 
+impl From<Canceled> for JsonError {
+    fn from(f: Canceled) -> Self {
+        JsonError(Error::Actix {
+            cause: f.to_string(),
+        })
+    }
+}
+
 impl ResponseError for JsonError {
     fn error_response(&self) -> HttpResponse {
         match &self.0 {
@@ -81,17 +89,6 @@ impl ResponseError for JsonError {
             Error::InvalidReference { .. } => {
                 HttpResponse::BadRequest().json(ErrorData::from_error(&self.0))
             }
-        }
-    }
-}
-
-impl From<BlockingError<DbError>> for JsonError {
-    fn from(f: BlockingError<DbError>) -> Self {
-        match f {
-            BlockingError::Canceled => JsonError(Error::Actix {
-                cause: f.to_string(),
-            }),
-            BlockingError::Error(db_e) => db_e.into(),
         }
     }
 }
@@ -124,6 +121,14 @@ impl From<DbError> for HtmlError {
     }
 }
 
+impl From<Canceled> for HtmlError {
+    fn from(f: Canceled) -> Self {
+        HtmlError(Error::Actix {
+            cause: f.to_string(),
+        })
+    }
+}
+
 impl ResponseError for HtmlError {
     fn error_response(&self) -> HttpResponse {
         let body = &TemplateData::new(ErrorData::from_error(&self.0), Meta::for_error())
@@ -140,16 +145,5 @@ impl ResponseError for HtmlError {
         }
         .content_type("text/html")
         .body(body)
-    }
-}
-
-impl From<BlockingError<DbError>> for HtmlError {
-    fn from(f: BlockingError<DbError>) -> Self {
-        HtmlError(match f {
-            BlockingError::Canceled => Error::Actix {
-                cause: f.to_string(),
-            },
-            BlockingError::Error(db_e) => db_e.into(),
-        })
     }
 }
