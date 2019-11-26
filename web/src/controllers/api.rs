@@ -1,6 +1,5 @@
 use actix_web::web;
 use actix_web::web::{HttpRequest, HttpResponse};
-use futures::future::{err, Either, Future};
 
 use db::models::Reference;
 use db::{SwordDrillable, VerseFormat};
@@ -10,11 +9,14 @@ use crate::error::JsonError;
 use crate::responder::{SearchResultData, VersesData};
 use crate::ServerData;
 
-pub fn reference<SD>(
+/// Result for JSON API response handlers
+type ApiResult = Result<HttpResponse, JsonError>;
+
+pub async fn reference<SD>(
     data: web::Data<ServerData>,
     path: web::Path<(String,)>,
     req: HttpRequest,
-) -> impl Future<Item = HttpResponse, Error = JsonError>
+) -> ApiResult
 where
     SD: SwordDrillable,
 {
@@ -22,49 +24,41 @@ where
     match path.0.parse::<Reference>() {
         Ok(reference) => {
             let data_reference = reference.to_owned();
-            Either::A(
-                web::block(move || {
-                    SD::verses(&reference, &VerseFormat::PlainText, &db.get().unwrap())
-                })
-                .map_err(JsonError::from)
-                .and_then(move |result| {
-                    let verses_data = VersesData::new(result, data_reference, &req);
-                    Ok(HttpResponse::Ok().json(verses_data))
-                }),
-            )
+            let result = web::block(move || {
+                SD::verses(&reference, &VerseFormat::PlainText, &db.get().unwrap())
+            })
+            .await??;
+
+            let verses_data = VersesData::new(result, data_reference, &req);
+            Ok(HttpResponse::Ok().json(verses_data))
         }
-        Err(e) => Either::B(err(JsonError::from(e))),
+        Err(e) => Err(JsonError::from(e)),
     }
 }
 
-pub fn search<SD>(
+pub async fn search<SD>(
     data: web::Data<ServerData>,
     query: web::Query<SearchParams>,
     req: HttpRequest,
-) -> impl Future<Item = HttpResponse, Error = JsonError>
+) -> ApiResult
 where
     SD: SwordDrillable,
 {
     let db = data.db.to_owned();
 
     // Check if query can be parsed as a reference
-    if let Ok(reference) = query.q.parse::<Reference>() {
-        Either::A(
-            web::block(move || SD::verses(&reference, &VerseFormat::PlainText, &db.get().unwrap()))
-                .map_err(JsonError::from)
-                .and_then(move |results| {
-                    Ok(HttpResponse::Ok().json(SearchResultData::from_verses(results, &req)))
-                }),
-        )
-    // Otherwise look for word matches
-    } else {
-        Either::B(
-            web::block(move || SD::search(&query.q, &db.get().unwrap()))
-                .map_err(JsonError::from)
-                .and_then(move |results| {
-                    Ok(HttpResponse::Ok().json(SearchResultData::from_verses_fts(results, &req)))
-                }),
-        )
+    match query.q.parse() {
+        Ok(reference) => {
+            let results = web::block(move || {
+                SD::verses(&reference, &VerseFormat::PlainText, &db.get().unwrap())
+            })
+            .await??;
+            Ok(HttpResponse::Ok().json(SearchResultData::from_verses(results, &req)))
+        }
+        Err(_) => {
+            let results = web::block(move || SD::search(&query.q, &db.get().unwrap())).await??;
+            Ok(HttpResponse::Ok().json(SearchResultData::from_verses_fts(results, &req)))
+        }
     }
 }
 

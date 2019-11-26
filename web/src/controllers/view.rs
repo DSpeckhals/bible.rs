@@ -1,6 +1,5 @@
 use actix_web::web;
 use actix_web::web::{HttpRequest, HttpResponse};
-use futures::future::{err, Either, Future};
 
 use db::models::Reference;
 use db::{SwordDrillable, VerseFormat};
@@ -10,8 +9,11 @@ use crate::error::{Error, HtmlError};
 use crate::responder::*;
 use crate::ServerData;
 
+/// Result for HTML response handlers
+type ViewResult = Result<HttpResponse, HtmlError>;
+
 /// Handles HTTP requests for the about page.
-pub fn about(data: web::Data<ServerData>) -> Result<HttpResponse, HtmlError> {
+pub async fn about(data: web::Data<ServerData>) -> ViewResult {
     let body = TemplateData::new(EmptyData, Meta::for_about()).to_html("about", &data.template)?;
 
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
@@ -20,53 +22,45 @@ pub fn about(data: web::Data<ServerData>) -> Result<HttpResponse, HtmlError> {
 /// Handles HTTP requests for a list of all books.
 ///
 /// Return an HTML page that lists all books in the Bible.
-pub fn all_books<SD>(
-    data: web::Data<ServerData>,
-    req: HttpRequest,
-) -> impl Future<Item = HttpResponse, Error = HtmlError>
+pub async fn all_books<SD>(data: web::Data<ServerData>, req: HttpRequest) -> ViewResult
 where
     SD: SwordDrillable,
 {
     let db = data.db.to_owned();
-    web::block(move || SD::all_books(&db.get().unwrap()))
-        .map_err(HtmlError::from)
-        .and_then(move |books| {
-            let books_data = AllBooksData::new(books, &req);
-            let body = TemplateData::new(
-                books_data.to_owned(),
-                Meta::for_all_books(&books_data.links),
-            )
-            .to_html("all-books", &data.template)?;
+    let books = web::block(move || SD::all_books(&db.get().unwrap())).await??;
 
-            Ok(HttpResponse::Ok().content_type("text/html").body(body))
-        })
+    let books_data = AllBooksData::new(books, &req);
+    let body = TemplateData::new(
+        books_data.to_owned(),
+        Meta::for_all_books(&books_data.links),
+    )
+    .to_html("all-books", &data.template)?;
+
+    Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
 
 /// Handles HTTP requests for a book (e.g. /John)
 ///
 /// Assume the path parameter is a Bible book, and get an HTML response
 /// that has book metadata and a list of chapters.
-pub fn book<SD>(
+pub async fn book<SD>(
     data: web::Data<ServerData>,
     path: web::Path<(String,)>,
     req: HttpRequest,
-) -> impl Future<Item = HttpResponse, Error = HtmlError>
+) -> ViewResult
 where
     SD: SwordDrillable,
 {
     let db = data.db.to_owned();
-    web::block(move || SD::book(&path.0, &db.get().unwrap()))
-        .map_err(HtmlError::from)
-        .and_then(move |result| {
-            let book_data = BookData::new(result, &req);
-            let body = TemplateData::new(
-                &book_data,
-                Meta::for_book(&book_data.book, &book_data.links),
-            )
-            .to_html("book", &data.template)?;
+    let result = web::block(move || SD::book(&path.0, &db.get().unwrap())).await??;
+    let book_data = BookData::new(result, &req);
+    let body = TemplateData::new(
+        &book_data,
+        Meta::for_book(&book_data.book, &book_data.links),
+    )
+    .to_html("book", &data.template)?;
 
-            Ok(HttpResponse::Ok().content_type("text/html").body(body))
-        })
+    Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
 
 /// Handles HTTP requests for references (e.g. /John/1/1).
@@ -74,11 +68,11 @@ where
 /// Parse the URL path for a string that would indicate a reference.
 /// If the path parses to a reference, then it is passed to the database
 /// layer and looked up, returning an HTTP response with the verse body.
-pub fn reference<SD>(
+pub async fn reference<SD>(
     data: web::Data<ServerData>,
     path: web::Path<(String,)>,
     req: HttpRequest,
-) -> impl Future<Item = HttpResponse, Error = HtmlError>
+) -> ViewResult
 where
     SD: SwordDrillable,
 {
@@ -87,35 +81,32 @@ where
     match raw_reference.parse::<Reference>() {
         Ok(reference) => {
             let data_reference = reference.to_owned();
-            Either::A(
+            let result =
                 web::block(move || SD::verses(&reference, &VerseFormat::HTML, &db.get().unwrap()))
-                    .map_err(HtmlError::from)
-                    .and_then(move |result| {
-                        let verses_data = VersesData::new(result, data_reference, &req);
+                    .await??;
+            let verses_data = VersesData::new(result, data_reference, &req);
 
-                        if verses_data.verses.is_empty() {
-                            return Err(Error::InvalidReference {
-                                reference: raw_reference,
-                            }
-                            .into());
-                        }
+            if verses_data.verses.is_empty() {
+                return Err(Error::InvalidReference {
+                    reference: raw_reference,
+                }
+                .into());
+            }
 
-                        let body = TemplateData::new(
-                            &verses_data,
-                            Meta::for_reference(
-                                &verses_data.reference,
-                                &verses_data.verses,
-                                &verses_data.links,
-                            ),
-                        )
-                        .to_html("chapter", &data.template)?;
-                        Ok(HttpResponse::Ok().content_type("text/html").body(body))
-                    }),
+            let body = TemplateData::new(
+                &verses_data,
+                Meta::for_reference(
+                    &verses_data.reference,
+                    &verses_data.verses,
+                    &verses_data.links,
+                ),
             )
+            .to_html("chapter", &data.template)?;
+            Ok(HttpResponse::Ok().content_type("text/html").body(body))
         }
-        Err(_) => Either::B(err(HtmlError(Error::InvalidReference {
+        Err(_) => Err(HtmlError(Error::InvalidReference {
             reference: raw_reference,
-        }))),
+        })),
     }
 }
 
@@ -123,26 +114,23 @@ where
 ///
 /// Return an HTML page with search results based on the `q` query
 /// parameter.
-pub fn search<SD>(
+pub async fn search<SD>(
     data: web::Data<ServerData>,
     query: web::Query<SearchParams>,
     req: HttpRequest,
-) -> impl Future<Item = HttpResponse, Error = HtmlError>
+) -> ViewResult
 where
     SD: SwordDrillable,
 {
     let db = data.db.to_owned();
     let q = query.q.to_owned();
-    web::block(move || SD::search(&query.q, &db.get().unwrap()))
-        .map_err(HtmlError::from)
-        .and_then(move |result| {
-            let body = TemplateData::new(
-                SearchResultData::from_verses_fts(result, &req),
-                Meta::for_search(&q, &req.uri().to_string()),
-            )
-            .to_html("search-results", &data.template)?;
-            Ok(HttpResponse::Ok().content_type("text/html").body(body))
-        })
+    let result = web::block(move || SD::search(&query.q, &db.get().unwrap())).await??;
+    let body = TemplateData::new(
+        SearchResultData::from_verses_fts(result, &req),
+        Meta::for_search(&q, &req.uri().to_string()),
+    )
+    .to_html("search-results", &data.template)?;
+    Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
 
 #[cfg(test)]

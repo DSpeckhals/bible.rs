@@ -74,25 +74,23 @@ fn main() -> io::Result<()> {
             .service(
                 web::resource("/")
                     .name("bible")
-                    .route(web::get().to_async(view::all_books::<SwordDrill>)),
+                    .route(web::get().to(view::all_books::<SwordDrill>)),
             )
-            .service(web::resource("search").route(web::get().to_async(view::search::<SwordDrill>)))
+            .service(web::resource("search").route(web::get().to(view::search::<SwordDrill>)))
             .service(
                 web::resource("{book}")
                     .name("book")
-                    .route(web::get().to_async(view::book::<SwordDrill>)),
+                    .route(web::get().to(view::book::<SwordDrill>)),
             )
             .service(
                 web::resource("{reference:.+\\d}")
                     .name("reference")
-                    .route(web::get().to_async(view::reference::<SwordDrill>)),
+                    .route(web::get().to(view::reference::<SwordDrill>)),
             )
-            .service(
-                web::resource("api/search").route(web::get().to_async(api::search::<SwordDrill>)),
-            )
+            .service(web::resource("api/search").route(web::get().to(api::search::<SwordDrill>)))
             .service(
                 web::resource("api/{reference}.json")
-                    .route(web::get().to_async(api::reference::<SwordDrill>)),
+                    .route(web::get().to(api::reference::<SwordDrill>)),
             )
             .default_service(web::route().to(web::HttpResponse::NotFound))
     })
