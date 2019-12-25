@@ -27,7 +27,7 @@ where
             let result = web::block(move || {
                 SD::verses(&reference, &VerseFormat::PlainText, &db.get().unwrap())
             })
-            .await??;
+            .await?;
 
             let verses_data = VersesData::new(result, data_reference, &req);
             Ok(HttpResponse::Ok().json(verses_data))
@@ -52,11 +52,11 @@ where
             let results = web::block(move || {
                 SD::verses(&reference, &VerseFormat::PlainText, &db.get().unwrap())
             })
-            .await??;
+            .await?;
             Ok(HttpResponse::Ok().json(SearchResultData::from_verses(results, &req)))
         }
         Err(_) => {
-            let results = web::block(move || SD::search(&query.q, &db.get().unwrap())).await??;
+            let results = web::block(move || SD::search(&query.q, &db.get().unwrap())).await?;
             Ok(HttpResponse::Ok().json(SearchResultData::from_verses_fts(results, &req)))
         }
     }

@@ -1,5 +1,6 @@
 use std::convert::From;
 
+use actix_web::error::BlockingError;
 use actix_web::web::HttpResponse;
 use actix_web::ResponseError;
 use failure::Fail;
@@ -93,6 +94,17 @@ impl ResponseError for JsonError {
     }
 }
 
+impl From<BlockingError<DbError>> for JsonError {
+    fn from(f: BlockingError<DbError>) -> Self {
+        match f {
+            BlockingError::Canceled => JsonError(Error::Actix {
+                cause: f.to_string(),
+            }),
+            BlockingError::Error(db_e) => db_e.into(),
+        }
+    }
+}
+
 lazy_static! {
     static ref ERR_TPL: Handlebars = {
         let mut tpl = Handlebars::new();
@@ -145,5 +157,16 @@ impl ResponseError for HtmlError {
         }
         .content_type("text/html")
         .body(body)
+    }
+}
+
+impl From<BlockingError<DbError>> for HtmlError {
+    fn from(f: BlockingError<DbError>) -> Self {
+        HtmlError(match f {
+            BlockingError::Canceled => Error::Actix {
+                cause: f.to_string(),
+            },
+            BlockingError::Error(db_e) => db_e.into(),
+        })
     }
 }

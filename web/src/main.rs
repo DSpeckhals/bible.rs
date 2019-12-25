@@ -29,7 +29,8 @@ fn register_templates() -> Result<Handlebars, Box<dyn Error>> {
     Ok(tpl)
 }
 
-fn main() -> io::Result<()> {
+#[actix_rt::main]
+async fn main() -> io::Result<()> {
     dotenv().ok();
 
     // Set up logging
@@ -95,7 +96,8 @@ fn main() -> io::Result<()> {
             .default_service(web::route().to(web::HttpResponse::NotFound))
     })
     .bind("0.0.0.0:8080")?
-    .run()
+    .start()
+    .await
 }
 
 mod controllers;
