@@ -1,6 +1,6 @@
 use std::str;
 
-use actix_http_test::block_on;
+use actix_rt::System;
 use actix_web::{test, web, App, HttpRequest, HttpResponse};
 use handlebars::Handlebars;
 use serde::de::DeserializeOwned;
@@ -26,7 +26,7 @@ where
             .service(web::resource("{reference:.+\\d}").name("reference")),
     );
 
-    block_on(async move {
+    System::new("test").block_on(async move {
         test::call_service(
             &mut srv.await,
             test::TestRequest::with_uri("/test").to_request(),
@@ -107,7 +107,7 @@ where
 
     let req = test::TestRequest::with_uri(uri).to_request();
 
-    block_on(async move { test::read_response_json(&mut srv.await, req).await })
+    System::new("test").block_on(async move { test::read_response_json(&mut srv.await, req).await })
 }
 
 pub fn html_response(uri: &str) -> String {
@@ -145,7 +145,7 @@ pub fn html_response(uri: &str) -> String {
 
     let req = test::TestRequest::with_uri(uri).to_request();
 
-    block_on(async move {
+    System::new("test").block_on(async move {
         str::from_utf8(&test::read_response(&mut srv.await, req).await)
             .expect("Could not convert response to UTF8")
             .to_string()

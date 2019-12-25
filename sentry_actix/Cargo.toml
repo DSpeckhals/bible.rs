@@ -5,7 +5,7 @@ authors = ["Dustin Speckhals <dustin1114@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-actix-web = "2.0.0-alpha.1"
+actix-web = "2.0.0-rc"
 futures = "0.3.1"
 pin-project = "0.4.6"
 sentry = "0.17.0"
