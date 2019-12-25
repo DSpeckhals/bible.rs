@@ -96,7 +96,7 @@ async fn main() -> io::Result<()> {
             .default_service(web::route().to(web::HttpResponse::NotFound))
     })
     .bind("0.0.0.0:8080")?
-    .start()
+    .run()
     .await
 }
 
