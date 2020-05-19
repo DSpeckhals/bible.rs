@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Remove existing sqlite3
 sudo apt remove sqlite3 libsqlite3-dev
 
