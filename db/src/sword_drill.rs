@@ -11,9 +11,7 @@ use crate::{DbError, VerseFormat};
 const SEARCH_RESULT_LIMIT: i64 = 15;
 
 sql_function!(
-    /// Represents the [`highlight` function](https://sqlite.org/fts5.html#the_highlight_function)
-    /// from SQLite's FTS5 extension.
-    fn highlight(table_name: Text, column_index: Integer, prefix: Text, suffix: Text) -> Text;
+    fn highlight(table_name: Text, column_index: Integer, prefix: Text, suffix: Text) -> Text
 );
 
 /// Trait implemented by types that can query for and return types of Bible structures.

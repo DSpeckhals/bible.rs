@@ -4,7 +4,6 @@ use std::env;
 use std::error::Error;
 use std::io;
 
-use actix_files;
 use actix_web::{http::ContentEncoding, middleware, web, App, HttpServer};
 use dotenv::dotenv;
 use handlebars::Handlebars;

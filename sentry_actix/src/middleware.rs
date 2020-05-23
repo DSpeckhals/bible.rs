@@ -239,7 +239,7 @@ where
 
             result
         }
-            .bind_hub(hub)
-            .boxed_local()
+        .bind_hub(hub)
+        .boxed_local()
     }
 }

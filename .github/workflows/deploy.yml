@@ -1,0 +1,42 @@
+name: Deploy
+
+on:
+  push:
+    tags:
+      - "*"
+
+jobs:
+
+  build_deploy:
+    name: Build and Deploy Docker Image
+    runs-on: ubuntu-18.04
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v1
+        with:
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+          repository: dspeckhals/bible.rs/bible.rs
+          registry: docker.pkg.github.com
+          tag_with_ref: true
+          tags: latest
+
+      - name: Install SSH Keys
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+          SSH_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: . ./scripts/deploy/install-ssh-keys.sh
+
+      - name: Sync Files to Remote Server
+        run: rsync -zrvh ./ "${{ secrets.DEPLOY_HOST }}:~/bible.rs"
+
+      - name: Run Remote Deploy
+        run: ssh "${{ secrets.DEPLOY_HOST }}" ". ~/bible.rs/scripts/deploy/remote-deploy.sh"
+

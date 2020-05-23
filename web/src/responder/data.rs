@@ -1,7 +1,6 @@
 use actix_web::HttpRequest;
 use handlebars::Handlebars;
 use log::error;
-use serde;
 use serde_derive::{Deserialize, Serialize};
 
 use db::models::{Book, Reference, Verse, VerseFTS};
@@ -27,7 +26,7 @@ impl ErrorData {
     /// Create new error data with a message
     pub fn new(m: &str) -> Self {
         Self {
-            message: m.to_string()
+            message: m.to_string(),
         }
     }
 
