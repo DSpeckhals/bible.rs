@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /search/
+Disallow: /api/
+
+Sitemap: https://bible.rs/sitemap.xml

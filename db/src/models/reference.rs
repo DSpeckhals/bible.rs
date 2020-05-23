@@ -132,7 +132,7 @@ mod tests {
             assert_eq!(
                 raw.parse::<Reference>().unwrap(),
                 Reference {
-                    book: book.to_string(),
+                    book: (*book).to_string(),
                     chapter: *chapter,
                     verses: verses.to_owned()
                 }
@@ -157,12 +157,12 @@ mod tests {
         .for_each(|(expected, book, chapter, verses)| {
             assert_eq!(
                 Reference {
-                    book: book.to_string(),
+                    book: (*book).to_string(),
                     chapter: *chapter,
                     verses: verses.to_owned()
                 }
                 .to_string(),
-                expected.to_string()
+                (*expected).to_string()
             );
         });
     }

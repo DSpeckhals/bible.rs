@@ -1,6 +1,5 @@
 use serde::ser;
 use serde_derive::{Deserialize, Serialize};
-use serde_json;
 
 use db::models::{Book, Reference};
 
