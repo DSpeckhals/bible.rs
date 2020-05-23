@@ -8,5 +8,5 @@ edition = "2018"
 path = "../db"
 
 [dependencies]
-clap = "2.33.0"
+clap = "2.33.1"
 dotenv = "0.15.0"
