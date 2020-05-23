@@ -1,6 +1,6 @@
 # Bible.rs
 
-[![Build Status](https://travis-ci.com/DSpeckhals/bible.rs.svg?branch=master)](https://travis-ci.com/DSpeckhals/bible.rs)
+![CI](https://github.com/DSpeckhals/bible.rs/workflows/CI/badge.svg)
 
 > A Bible server written in Rust using Actix Web and Diesel
 
