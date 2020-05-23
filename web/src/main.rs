@@ -16,11 +16,11 @@ use crate::controllers::{api, view};
 /// Represents the [server data](actix_web.web.Data.html) for the application.
 pub struct ServerData {
     pub db: SqliteConnectionPool,
-    pub template: Handlebars,
+    pub template: Handlebars<'static>,
 }
 
 /// Registers the [Handlebars](handlebars.handlebars.html) templates for the application.
-fn register_templates() -> Result<Handlebars, Box<dyn Error>> {
+fn register_templates() -> Result<Handlebars<'static>, Box<dyn Error>> {
     let mut tpl = Handlebars::new();
     tpl.set_strict_mode(true);
     tpl.register_templates_directory(".hbs", "./web/templates/")?;

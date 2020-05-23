@@ -106,7 +106,7 @@ impl From<BlockingError<DbError>> for JsonError {
 }
 
 lazy_static! {
-    static ref ERR_TPL: Handlebars = {
+    static ref ERR_TPL: Handlebars<'static> = {
         let mut tpl = Handlebars::new();
         tpl.register_template_file("base", "./web/templates/base.hbs")
             .unwrap();
