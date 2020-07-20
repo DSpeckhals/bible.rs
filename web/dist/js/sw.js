@@ -1,4 +1,4 @@
-const CACHE_NAME = "biblers-cache-v4";
+const CACHE_NAME = "biblers-cache-v5";
 
 // Use cache before fetching from the network.
 self.addEventListener("fetch", (e) => {
