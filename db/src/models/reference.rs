@@ -1,5 +1,5 @@
 use std::fmt;
-use std::ops::Range;
+use std::ops::RangeInclusive;
 use std::str::FromStr;
 
 use lazy_static::lazy_static;
@@ -14,7 +14,7 @@ use crate::DbError;
 pub struct Reference {
     pub book: String,
     pub chapter: i32,
-    pub verses: Option<Range<i32>>,
+    pub verses: Option<RangeInclusive<i32>>,
 }
 
 impl fmt::Display for Reference {
@@ -30,10 +30,17 @@ impl fmt::Display for Reference {
                 chapter,
                 verses: Some(verses),
             } => {
-                if verses.start == verses.end {
-                    write!(f, "{} {}:{}", book, chapter, verses.start)
+                if verses.start() == verses.end() {
+                    write!(f, "{} {}:{}", book, chapter, verses.start())
                 } else {
-                    write!(f, "{} {}:{}-{}", book, chapter, verses.start, verses.end)
+                    write!(
+                        f,
+                        "{} {}:{}-{}",
+                        book,
+                        chapter,
+                        verses.start(),
+                        verses.end()
+                    )
                 }
             }
         }
@@ -74,7 +81,7 @@ impl FromStr for Reference {
                         Ok(Reference {
                             book,
                             chapter: parse_num_match(chapter)?,
-                            verses: Some(verse..verse),
+                            verses: Some(verse..=verse),
                         })
                     }
                     // Chapter with more than one verse
@@ -84,7 +91,7 @@ impl FromStr for Reference {
                         Ok(Reference {
                             book,
                             chapter: parse_num_match(chapter)?,
-                            verses: Some(verse_start..verse_end),
+                            verses: Some(verse_start..=verse_end),
                         })
                     }
                     _ => Err(invalid_reference(s)),
@@ -121,11 +128,11 @@ mod tests {
             ("Song of Solomon 1", "Song of Solomon", 1, None),
             ("Exodus 20", "Exodus", 20, None),
             ("1cor 4", "1cor", 4, None),
-            ("John 1:1", "John", 1, Some(1..1)),
-            ("jhn.1.1", "jhn", 1, Some(1..1)),
-            ("I Timothy 3:16", "I Timothy", 3, Some(16..16)),
-            ("1 Timothy 3:16-18", "1 Timothy", 3, Some(16..18)),
-            ("1tim 3.16", "1tim", 3, Some(16..16)),
+            ("John 1:1", "John", 1, Some(1..=1)),
+            ("jhn.1.1", "jhn", 1, Some(1..=1)),
+            ("I Timothy 3:16", "I Timothy", 3, Some(16..=16)),
+            ("1 Timothy 3:16-18", "1 Timothy", 3, Some(16..=18)),
+            ("1tim 3.16", "1tim", 3, Some(16..=16)),
         ]
         .iter()
         .for_each(|(raw, book, chapter, verses)| {
@@ -148,10 +155,10 @@ mod tests {
             ("3 John 1", "3 John", 1, None),
             ("Exodus 20", "Exodus", 20, None),
             ("1 Cor 4", "1 Cor", 4, None),
-            ("John 1:1", "John", 1, Some(1..1)),
-            ("I Timothy 3:16", "I Timothy", 3, Some(16..16)),
-            ("1 Timothy 3:16-18", "1 Timothy", 3, Some(16..18)),
-            ("1Tim 3:16", "1Tim", 3, Some(16..16)),
+            ("John 1:1", "John", 1, Some(1..=1)),
+            ("I Timothy 3:16", "I Timothy", 3, Some(16..=16)),
+            ("1 Timothy 3:16-18", "1 Timothy", 3, Some(16..=18)),
+            ("1Tim 3:16", "1Tim", 3, Some(16..=16)),
         ]
         .iter()
         .for_each(|(expected, book, chapter, verses)| {

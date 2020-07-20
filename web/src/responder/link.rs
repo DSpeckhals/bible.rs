@@ -1,4 +1,4 @@
-use std::ops::Range;
+use std::ops::RangeInclusive;
 
 use actix_web::error::UrlGenerationError;
 use actix_web::HttpRequest;
@@ -122,12 +122,12 @@ pub(super) fn verse_url(b: &str, c: i32, v: i32, req: &HttpRequest) -> Link {
 }
 
 /// Generates a URL for verses from the given book, chapter, and verse range.
-fn verse_range_url(b: &str, c: i32, verses: &Range<i32>, req: &HttpRequest) -> Link {
+fn verse_range_url(b: &str, c: i32, verses: &RangeInclusive<i32>, req: &HttpRequest) -> Link {
     let chapter_string = c.to_string();
-    let verses_string = if verses.start == verses.end {
-        verses.start.to_string()
+    let verses_string = if verses.start() == verses.end() {
+        verses.start().to_string()
     } else {
-        format!("{}-{}", verses.start, verses.end)
+        format!("{}-{}", verses.start(), verses.end())
     };
     Link::new(
         &req.url_for(
