@@ -73,7 +73,7 @@ impl SwordDrillable for SwordDrill {
                     .into_boxed();
 
                 if let Some(ref verses) = reference.verses {
-                    query = query.filter(plain_text::verse.between(verses.start, verses.end));
+                    query = query.filter(plain_text::verse.between(verses.start(), verses.end()));
                 }
                 query.load(conn)
             }
@@ -85,12 +85,12 @@ impl SwordDrillable for SwordDrill {
                     .into_boxed();
 
                 if let Some(ref verses) = reference.verses {
-                    query = query.filter(html::verse.between(verses.start, verses.end));
+                    query = query.filter(html::verse.between(verses.start(), verses.end()));
                 }
                 query.load(conn)
             }
         }
-        .and_then(|verses| Ok((book, verses)))
+        .map(|verses| (book, verses))
         .map_err(|e| DbError::Other { cause: e })
     }
 

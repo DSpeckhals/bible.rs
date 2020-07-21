@@ -59,7 +59,7 @@ impl VersesData {
         reference.verses = if let Some(vs) = reference.verses {
             match verses.len() {
                 0 => None,
-                n => Some(vs.start..verses[n - 1].verse),
+                n => Some(*vs.start()..=verses[n - 1].verse),
             }
         } else {
             None

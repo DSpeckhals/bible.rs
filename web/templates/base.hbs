@@ -7,6 +7,12 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>{{meta.title}}</title>
     <link rel="canonical" href="{{meta.url}}">
+    {{~ #if data.links.previous}}
+    <link rel="prev" href="{{data.links.previous.url}}" id="link-prev">
+    {{~ /if}}
+    {{~ #if data.links.next}}
+    <link rel="next" href="{{data.links.next.url}}" id="link-next">
+    {{~ /if}}
     <link rel="shortcut icon" href="/static/img/bible.rs-32x32.png" type="image/png">
     <link rel="stylesheet" href="/static/css/style.css" media="all">
     <link rel="manifest" href="/static/manifest.json">

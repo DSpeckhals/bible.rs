@@ -1,3 +1,4 @@
+// Search box
 (function () {
     function getResults(q, cb) {
         if (!q) {
@@ -20,7 +21,7 @@
                     return "<p><i>" + result.link.label + "</i> | " + result.text + "</p>";
                 }
             }
-        },
+        }
     ]).on("autocomplete:selected", function (e, suggestion) {
         document.location.href = suggestion.link.url;
     });
@@ -41,6 +42,67 @@
         e.preventDefault();
         return false;
     };
-
-    navigator.serviceWorker && navigator.serviceWorker.register("/static/js/sw.js", { scope: "/" });
 })();
+
+// Swipe navigation
+(function () {
+    function detectSwipe(el, callback) {
+        var touchSurface = el;
+        var swipeDir;
+        var startX;
+        var startY;
+        var distX;
+        var distY;
+        var threshold = 50;
+        var restraint = 50;
+        var allowedTime = 300;
+        var elapsedTime;
+        var startTime;
+        var handleSwipe = callback || function () {};
+
+        touchSurface.addEventListener("touchstart", function (e) {
+            var touchObj = e.changedTouches[0];
+            swipeDir = "none";
+            distX = 0;
+            distY = 0;
+            startX = touchObj.pageX;
+            startY = touchObj.pageY;
+            startTime = new Date().getTime();
+        }, false);
+
+        touchSurface.addEventListener("touchend", function (e) {
+            var touchObj = e.changedTouches[0];
+            distX = touchObj.pageX - startX;
+            distY = touchObj.pageY - startY;
+            elapsedTime = new Date().getTime() - startTime;
+
+            if (elapsedTime <= allowedTime) {
+                if (Math.abs(distX) >= threshold && Math.abs(distY) <= restraint) {
+                    swipeDir = (distX < 0)? "left" : "right";
+                }
+                else if (Math.abs(distY) >= threshold && Math.abs(distX) <= restraint) {
+                    swipeDir = (distY < 0)? "up" : "down";
+                }
+            }
+            handleSwipe(swipeDir);
+        }, false);
+    }
+
+    var el = document.getElementsByTagName("main")[0];
+    var prevEl = document.getElementById("link-prev");
+    var nextEl = document.getElementById("link-next");
+    if (prevEl || nextEl) {
+        detectSwipe(el, function (swipeDir) {
+            if (swipeDir == "right" && prevEl) {
+                window.location.href = prevEl.getAttribute("href");
+            } else if (swipeDir == "left" && nextEl) {
+                window.location.href = nextEl.getAttribute("href");
+            }
+        });
+    }
+})();
+
+// Service worker registration
+if (navigator.serviceWorker) {
+    navigator.serviceWorker.register("/static/js/sw.js", { scope: "/" });
+}
