@@ -12,7 +12,7 @@ RUN apt-get update && \
         tcl && \
     rm -rf /var/lib/apt/lists/*
 
-RUN curl -SL https://www.fossil-scm.org/fossil/uv/fossil-linux-x64-2.10.tar.gz | tar -xzC /usr/local/bin && \
+RUN curl -SL https://www.fossil-scm.org/home/uv/fossil-linux-x64-2.11.1.tar.gz | tar -xzC /usr/local/bin && \
     mkdir sqlite sqlite-build && \
     cd sqlite && \
     fossil clone --user=root http://www.sqlite.org/cgi/src sqlite.fossil && \
