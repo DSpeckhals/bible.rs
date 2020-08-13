@@ -25,18 +25,35 @@ jobs:
           repository: dspeckhals/bible.rs/bible.rs
           registry: docker.pkg.github.com
           tag_with_ref: true
-          tags: latest
+          tags: latest,${{ github.sha }}
 
-      - name: Install SSH Keys
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
-          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
-          SSH_HOST: ${{ secrets.DEPLOY_HOST }}
-        run: . ./scripts/deploy/install-ssh-keys.sh
+      - name: Set kubectl Context
+        uses: azure/k8s-set-context@v1
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.KUBECONFIG }}
 
-      - name: Sync Files to Remote Server
-        run: rsync -zrvh ./ "${{ secrets.DEPLOY_HOST }}:~/bible.rs"
+      - name: Create Docker Repository Secret
+        uses: azure/k8s-create-secret@v1
+        with:
+          container-registry-url: docker.pkg.github.com
+          container-registry-username: ${{ github.actor }}
+          container-registry-password: ${{ github.token }}
+          secret-name: githubregcred
 
-      - name: Run Remote Deploy
-        run: ssh "${{ secrets.DEPLOY_HOST }}" ". ~/bible.rs/scripts/deploy/remote-deploy.sh"
+      - name: Create Sentry Secret
+        uses: azure/k8s-create-secret@v1
+        with:
+          secret-type: 'generic'
+          arguments:  --from-literal=dsn=${{ secrets.SENTRY_DSN }}
+          secret-name: sentry
+
+      - name: Deploy to Cluster
+        uses: Azure/k8s-deploy@v1
+        with:
+          manifests: |
+              config/k8s/biblers.yml
+              config/k8s/web.yml
+          images: 'docker.pkg.github.com/dspeckhals/bible.rs:${{ github.sha }}'
+          imagepullsecrets: githubregcred
 
