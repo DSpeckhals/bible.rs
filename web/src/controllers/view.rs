@@ -45,14 +45,14 @@ where
 /// that has book metadata and a list of chapters.
 pub async fn book<SD>(
     data: web::Data<ServerData>,
-    path: web::Path<(String,)>,
+    web::Path((book_name,)): web::Path<(String,)>,
     req: HttpRequest,
 ) -> ViewResult
 where
     SD: SwordDrillable,
 {
     let db = data.db.to_owned();
-    let result = web::block(move || SD::book(&path.0, &db.get().unwrap())).await?;
+    let result = web::block(move || SD::book(&book_name, &db.get().unwrap())).await?;
     let book_data = BookData::new(result, &req);
     let body = TemplateData::new(
         &book_data,
@@ -70,43 +70,38 @@ where
 /// layer and looked up, returning an HTTP response with the verse body.
 pub async fn reference<SD>(
     data: web::Data<ServerData>,
-    path: web::Path<(String,)>,
+    web::Path((path_reference,)): web::Path<(String,)>,
     req: HttpRequest,
 ) -> ViewResult
 where
     SD: SwordDrillable,
 {
     let db = data.db.to_owned();
-    let raw_reference = path.0.replace("/", ".");
-    match raw_reference.parse::<Reference>() {
-        Ok(reference) => {
-            let data_reference = reference.to_owned();
-            let result =
-                web::block(move || SD::verses(&reference, &VerseFormat::HTML, &db.get().unwrap()))
-                    .await?;
-            let verses_data = VersesData::new(result, data_reference, &req);
+    let raw_reference = path_reference.replace("/", ".");
 
-            if verses_data.verses.is_empty() {
-                return Err(Error::InvalidReference {
-                    reference: raw_reference,
-                }
-                .into());
-            }
+    if let Ok(reference) = raw_reference.parse::<Reference>() {
+        let data_reference = reference.to_owned();
+        let result =
+            web::block(move || SD::verses(&reference, &VerseFormat::HTML, &db.get().unwrap()))
+                .await?;
+        let verses_data = VersesData::new(result, data_reference, &req);
 
-            let body = TemplateData::new(
-                &verses_data,
-                Meta::for_reference(
-                    &verses_data.reference,
-                    &verses_data.verses,
-                    &verses_data.links,
-                ),
-            )
-            .to_html("chapter", &data.template)?;
-            Ok(HttpResponse::Ok().content_type("text/html").body(body))
+        if verses_data.verses.is_empty() {
+            return Err(Error::InvalidReference(raw_reference).into());
         }
-        Err(_) => Err(HtmlError(Error::InvalidReference {
-            reference: raw_reference,
-        })),
+
+        let body = TemplateData::new(
+            &verses_data,
+            Meta::for_reference(
+                &verses_data.reference,
+                &verses_data.verses,
+                &verses_data.links,
+            ),
+        )
+        .to_html("chapter", &data.template)?;
+        Ok(HttpResponse::Ok().content_type("text/html").body(body))
+    } else {
+        Err(Error::InvalidReference(raw_reference).into())
     }
 }
 

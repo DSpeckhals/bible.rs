@@ -91,7 +91,9 @@ impl SwordDrillable for SwordDrill {
             }
         }
         .map(|verses| (book, verses))
-        .map_err(|e| DbError::Other { cause: e })
+        .map_err(|e| DbError::Other {
+            cause: e.to_string(),
+        })
     }
 
     fn book(book_name: &str, conn: &SqliteConnection) -> Result<(Book, Vec<i32>), DbError> {
@@ -106,7 +108,9 @@ impl SwordDrillable for SwordDrill {
                 Error::NotFound => DbError::BookNotFound {
                     book: book_name.to_owned(),
                 },
-                e => DbError::Other { cause: e },
+                e => DbError::Other {
+                    cause: e.to_string(),
+                },
             })?;
         let chapters: Vec<i32> = (1..=book.chapter_count).collect();
 
@@ -116,10 +120,9 @@ impl SwordDrillable for SwordDrill {
     fn all_books(conn: &SqliteConnection) -> Result<Vec<Book>, DbError> {
         use crate::schema::books::dsl::*;
 
-        books
-            .order_by(id)
-            .load(conn)
-            .map_err(|e| DbError::Other { cause: e })
+        books.order_by(id).load(conn).map_err(|e| DbError::Other {
+            cause: e.to_string(),
+        })
     }
 
     fn search(query: &str, conn: &SqliteConnection) -> Result<Vec<(VerseFTS, Book)>, DbError> {
@@ -169,7 +172,9 @@ impl SwordDrillable for SwordDrill {
             .order_by(verses_fts::rank)
             .limit(SEARCH_RESULT_LIMIT)
             .load::<(VerseFTS, Book)>(conn)
-            .map_err(|e| DbError::Other { cause: e })
+            .map_err(|e| DbError::Other {
+                cause: e.to_string(),
+            })
     }
 }
 

@@ -3,77 +3,56 @@ use std::convert::From;
 use actix_web::error::BlockingError;
 use actix_web::web::HttpResponse;
 use actix_web::ResponseError;
-use failure::Fail;
-use futures::channel::oneshot::Canceled;
 use handlebars::Handlebars;
 use lazy_static::lazy_static;
 use log::error;
+use thiserror::Error;
 
 use db::DbError;
 
 use crate::responder::{ErrorData, Meta, SearchResultData, TemplateData};
 
-/// Error type that for the Bible.rs application.
-#[derive(Fail, Debug)]
+/// Error type for the Bible.rs application.
+#[derive(Clone, Error, Debug)]
 pub enum Error {
-    #[fail(
-        display = "There was an error with the Actix async arbiter. Cause: {}",
-        cause
-    )]
-    Actix { cause: String },
+    #[error("There was an error with Actix. Cause: {0}")]
+    Actix(String),
 
-    #[fail(display = "'{}' was not found.", book)]
-    BookNotFound { book: String },
+    #[error("'{0}' was not found.")]
+    BookNotFound(String),
 
-    #[fail(display = "There was a database error. Root cause: {}", cause)]
-    Db { cause: String },
+    #[error("There was a database error. Root cause: {0}")]
+    Db(String),
 
-    #[fail(display = "'{}' is not a valid Bible reference.", reference)]
-    InvalidReference { reference: String },
+    #[error("{0} is not a valid Bible reference.")]
+    InvalidReference(String),
 
-    #[fail(display = "There was an error rendering the HTML page.")]
+    #[error("There was an error rendering the HTML page.")]
     Template,
 }
 
 impl From<DbError> for Error {
     fn from(f: DbError) -> Self {
         match f {
-            DbError::InvalidReference { reference } => Error::InvalidReference { reference },
-            DbError::BookNotFound { book } => Error::BookNotFound { book },
-            DbError::Other { cause } => Error::Db {
-                cause: cause.to_string(),
-            },
-            _ => Error::Db {
-                cause: f.to_string(),
-            },
+            DbError::InvalidReference { reference } => Error::InvalidReference(reference),
+            DbError::BookNotFound { book } => Error::BookNotFound(book),
+            DbError::Migration { cause }
+            | DbError::Other { cause }
+            | DbError::ConnectionPool { cause } => Error::Db(cause),
         }
     }
 }
 
-#[derive(Fail, Debug)]
-#[fail(display = "Error: {}", _0)]
+#[derive(Error, Debug)]
+#[error("Error: {0}")]
 /// Error to display as JSON
-pub struct JsonError(Error);
+pub struct JsonError(#[from] pub Error);
 
-impl From<Error> for JsonError {
-    fn from(f: Error) -> Self {
-        JsonError(f)
-    }
-}
-
-impl From<DbError> for JsonError {
-    fn from(f: DbError) -> Self {
-        JsonError(f.into())
-    }
-}
-
-impl From<Canceled> for JsonError {
-    fn from(f: Canceled) -> Self {
-        JsonError(Error::Actix {
-            cause: f.to_string(),
-        })
-    }
-}
+// impl From<DbError> for JsonError {
+//     fn from(f: DbError) -> Self {
+//         JsonError(f.into())
+//     }
+// }
 
 impl ResponseError for JsonError {
     fn error_response(&self) -> HttpResponse {
@@ -82,7 +61,7 @@ impl ResponseError for JsonError {
                 error!("Unhandled: {}", &self.0);
                 HttpResponse::InternalServerError().json(ErrorData::from_error(&self.0))
             }
-            Error::Db { cause } => {
+            Error::Db(cause) => {
                 error!("Database error: {}", cause);
                 HttpResponse::InternalServerError().json(ErrorData::new(cause))
             }
@@ -96,12 +75,10 @@ impl ResponseError for JsonError {
 
 impl From<BlockingError<DbError>> for JsonError {
     fn from(f: BlockingError<DbError>) -> Self {
-        match f {
-            BlockingError::Canceled => JsonError(Error::Actix {
-                cause: f.to_string(),
-            }),
+        JsonError(match f {
+            BlockingError::Canceled => Error::Actix(f.to_string()),
             BlockingError::Error(db_e) => db_e.into(),
-        }
+        })
     }
 }
 
@@ -116,30 +93,10 @@ lazy_static! {
     };
 }
 
-#[derive(Fail, Debug)]
-#[fail(display = "HTML Error")]
+#[derive(Error, Debug)]
+#[error("Error: {0}")]
 /// Error to display as HTML.
-pub struct HtmlError(pub Error);
-
-impl From<Error> for HtmlError {
-    fn from(f: Error) -> Self {
-        HtmlError(f)
-    }
-}
-
-impl From<DbError> for HtmlError {
-    fn from(f: DbError) -> Self {
-        HtmlError(f.into())
-    }
-}
-
-impl From<Canceled> for HtmlError {
-    fn from(f: Canceled) -> Self {
-        HtmlError(Error::Actix {
-            cause: f.to_string(),
-        })
-    }
-}
+pub struct HtmlError(#[from] pub Error);
 
 impl ResponseError for HtmlError {
     fn error_response(&self) -> HttpResponse {
@@ -163,9 +120,7 @@ impl ResponseError for HtmlError {
 impl From<BlockingError<DbError>> for HtmlError {
     fn from(f: BlockingError<DbError>) -> Self {
         HtmlError(match f {
-            BlockingError::Canceled => Error::Actix {
-                cause: f.to_string(),
-            },
+            BlockingError::Canceled => Error::Actix(f.to_string()),
             BlockingError::Error(db_e) => db_e.into(),
         })
     }

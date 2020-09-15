@@ -5,7 +5,7 @@ use db::models::Reference;
 use db::{SwordDrillable, VerseFormat};
 
 use crate::controllers::SearchParams;
-use crate::error::JsonError;
+use crate::error::{Error, JsonError};
 use crate::responder::{SearchResultData, VersesData};
 use crate::ServerData;
 
@@ -14,25 +14,25 @@ type ApiResult = Result<HttpResponse, JsonError>;
 
 pub async fn reference<SD>(
     data: web::Data<ServerData>,
-    path: web::Path<(String,)>,
+    web::Path((path_reference,)): web::Path<(String,)>,
     req: HttpRequest,
 ) -> ApiResult
 where
     SD: SwordDrillable,
 {
-    let db = data.db.to_owned();
-    match path.0.parse::<Reference>() {
-        Ok(reference) => {
-            let data_reference = reference.to_owned();
-            let result = web::block(move || {
-                SD::verses(&reference, &VerseFormat::PlainText, &db.get().unwrap())
-            })
-            .await?;
+    let raw_reference = path_reference.replace("/", ".");
 
-            let verses_data = VersesData::new(result, data_reference, &req);
-            Ok(HttpResponse::Ok().json(verses_data))
-        }
-        Err(e) => Err(JsonError::from(e)),
+    if let Ok(reference) = raw_reference.parse::<Reference>() {
+        let data_reference = reference.to_owned();
+        let result = web::block(move || {
+            SD::verses(&reference, &VerseFormat::PlainText, &data.db.get().unwrap())
+        })
+        .await?;
+
+        let verses_data = VersesData::new(result, data_reference, &req);
+        Ok(HttpResponse::Ok().json(verses_data))
+    } else {
+        Err(Error::InvalidReference(raw_reference).into())
     }
 }
 
@@ -44,21 +44,15 @@ pub async fn search<SD>(
 where
     SD: SwordDrillable,
 {
-    let db = data.db.to_owned();
-
-    // Check if query can be parsed as a reference
-    match query.q.parse() {
-        Ok(reference) => {
-            let results = web::block(move || {
-                SD::verses(&reference, &VerseFormat::PlainText, &db.get().unwrap())
-            })
-            .await?;
-            Ok(HttpResponse::Ok().json(SearchResultData::from_verses(results, &req)))
-        }
-        Err(_) => {
-            let results = web::block(move || SD::search(&query.q, &db.get().unwrap())).await?;
-            Ok(HttpResponse::Ok().json(SearchResultData::from_verses_fts(results, &req)))
-        }
+    if let Ok(reference) = query.q.parse::<Reference>() {
+        let results = web::block(move || {
+            SD::verses(&reference, &VerseFormat::PlainText, &data.db.get().unwrap())
+        })
+        .await?;
+        Ok(HttpResponse::Ok().json(SearchResultData::from_verses(results, &req)))
+    } else {
+        let results = web::block(move || SD::search(&query.q, &data.db.get().unwrap())).await?;
+        Ok(HttpResponse::Ok().json(SearchResultData::from_verses_fts(results, &req)))
     }
 }
 
