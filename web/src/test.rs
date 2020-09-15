@@ -1,7 +1,6 @@
 use std::str;
 
-use actix_rt::System;
-use actix_web::{test, web, App, HttpRequest, HttpResponse};
+use actix_web::{rt::System, test, web, App, HttpRequest, HttpResponse};
 use handlebars::Handlebars;
 use serde::de::DeserializeOwned;
 

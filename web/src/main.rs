@@ -9,7 +9,6 @@ use dotenv::dotenv;
 use handlebars::Handlebars;
 
 use db::{build_pool, establish_connection, run_migrations, SqliteConnectionPool, SwordDrill};
-use sentry_actix::SentryMiddleware;
 
 use crate::controllers::{api, view};
 
@@ -28,7 +27,7 @@ fn register_templates() -> Result<Handlebars<'static>, Box<dyn Error>> {
     Ok(tpl)
 }
 
-#[actix_rt::main]
+#[actix_web::main]
 async fn main() -> io::Result<()> {
     dotenv().ok();
 
@@ -37,15 +36,10 @@ async fn main() -> io::Result<()> {
     env_logger::init();
 
     // Get env configuration
-    let sentry_dsn = env::var("SENTRY_DSN").ok();
     let url = env::var("DATABASE_URL").unwrap_or_else(|_| "/tmp/biblers.db".to_string());
 
     // Set up sentry
-    let capture_errors = sentry_dsn.is_some();
-    let _guard = sentry::init(sentry_dsn);
-    if capture_errors {
-        sentry::integrations::panic::register_panic_handler();
-    }
+    let _sentry = sentry::init(sentry::ClientOptions::default());
 
     // Run DB migrations for a new SQLite database
     run_migrations(&establish_connection(&url)).expect("Error running migrations");
@@ -59,11 +53,6 @@ async fn main() -> io::Result<()> {
         // Wire up the application
         App::new()
             .wrap(middleware::Compress::new(ContentEncoding::Gzip))
-            .wrap(
-                SentryMiddleware::new()
-                    .emit_header(true)
-                    .capture_server_errors(capture_errors),
-            )
             .wrap(middleware::Logger::default())
             .data(ServerData {
                 db: pool.clone(),

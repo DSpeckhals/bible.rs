@@ -8,11 +8,8 @@ use std::path::Path;
 
 use diesel::prelude::*;
 use diesel::r2d2;
-use diesel::result::Error;
-use diesel_migrations::{
-    connection::MigrationConnection, run_pending_migrations_in_directory, RunMigrationsError,
-};
-use failure::Fail;
+use diesel_migrations::{connection::MigrationConnection, run_pending_migrations_in_directory};
+use thiserror::Error;
 
 /// Type of a pooled SQLite connection manager.
 pub type SqliteConnectionManager = r2d2::ConnectionManager<SqliteConnection>;
@@ -30,24 +27,21 @@ pub enum VerseFormat {
     PlainText,
 }
 
-#[derive(Fail, Debug)]
+#[derive(Clone, Error, Debug)]
 pub enum DbError {
-    #[fail(display = "'{}' was not found.", book)]
+    #[error("'{}' was not found.", book)]
     BookNotFound { book: String },
 
-    #[fail(display = "There was a connection pool error.")]
+    #[error("There was a connection pool error.")]
     ConnectionPool { cause: String },
 
-    #[fail(display = "There was a database error. Root cause: {:?}.", cause)]
-    Other { cause: Error },
+    #[error("There was a database error. Root cause: {:?}.", cause)]
+    Other { cause: String },
 
-    #[fail(
-        display = "There was a database migration error. Root cause: {:?}.",
-        cause
-    )]
-    Migration { cause: RunMigrationsError },
+    #[error("There was a database migration error. Root cause: {:?}.", cause)]
+    Migration { cause: String },
 
-    #[fail(display = "'{}' is not a valid Bible reference.", reference)]
+    #[error("'{}' is not a valid Bible reference.", reference)]
     InvalidReference { reference: String },
 }
 
@@ -70,8 +64,9 @@ where
     Conn: MigrationConnection,
 {
     let dir = Path::new("./db/migrations");
-    run_pending_migrations_in_directory(conn, &dir, &mut stdout())
-        .map_err(|e| DbError::Migration { cause: e })
+    run_pending_migrations_in_directory(conn, &dir, &mut stdout()).map_err(|e| DbError::Migration {
+        cause: e.to_string(),
+    })
 }
 
 pub mod models;
