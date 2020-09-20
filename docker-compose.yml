@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   app:
-    image: docker.pkg.github.com/dspeckhals/bible.rs:latest
+    image: ghcr.io/dspeckhals/bible.rs:latest
 
   gateway:
     image: nginx:1.17.10
