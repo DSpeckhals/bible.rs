@@ -22,7 +22,7 @@ pub type DbConnection = SqliteConnection;
 /// Result formats for verses.
 pub enum VerseFormat {
     /// Literal HTML.
-    HTML,
+    Html,
     /// Plain text with no special formatting.
     PlainText,
 }
