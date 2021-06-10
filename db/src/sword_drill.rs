@@ -77,7 +77,7 @@ impl SwordDrillable for SwordDrill {
                 }
                 query.load(conn)
             }
-            VerseFormat::HTML => {
+            VerseFormat::Html => {
                 let mut query = html::table
                     .filter(html::book.eq(book.id))
                     .filter(html::chapter.eq(reference.chapter))

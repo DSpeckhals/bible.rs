@@ -82,7 +82,7 @@ where
     if let Ok(reference) = raw_reference.parse::<Reference>() {
         let data_reference = reference.to_owned();
         let result =
-            web::block(move || SD::verses(&reference, &VerseFormat::HTML, &db.get().unwrap()))
+            web::block(move || SD::verses(&reference, &VerseFormat::Html, &db.get().unwrap()))
                 .await?;
         let verses_data = VersesData::new(result, data_reference, &req);
 
