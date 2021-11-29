@@ -65,7 +65,7 @@ impl VersesData {
             None
         };
         let reference_string = reference.to_string();
-        let links = VersesLinks::new(&book, &reference, &req);
+        let links = VersesLinks::new(&book, &reference, req);
 
         Self {
             book,
@@ -106,7 +106,7 @@ pub struct AllBooksData {
 
 impl AllBooksData {
     pub fn new(books: Vec<Book>, req: &HttpRequest) -> Self {
-        let links = AllBooksLinks::new(books.to_owned(), &req);
+        let links = AllBooksLinks::new(books.to_owned(), req);
         Self { books, links }
     }
 }

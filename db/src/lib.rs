@@ -64,7 +64,7 @@ where
     Conn: MigrationConnection,
 {
     let dir = Path::new("./db/migrations");
-    run_pending_migrations_in_directory(conn, &dir, &mut stdout()).map_err(|e| DbError::Migration {
+    run_pending_migrations_in_directory(conn, dir, &mut stdout()).map_err(|e| DbError::Migration {
         cause: e.to_string(),
     })
 }

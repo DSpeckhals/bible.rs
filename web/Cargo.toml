@@ -2,24 +2,24 @@
 name = "web"
 version = "0.1.0"
 authors = ["Dustin Speckhals <dustin1114@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies.db]
 path = "../db"
 
 [dependencies]
-actix-files = "0.5.0"
-actix-web = "3.3.2"
+actix-files = "0.6.0"
+actix-web = "4.0.1"
 
 dotenv = "0.15.0"
-env_logger = "0.8.3"
-handlebars = { version = "4.0.0", features = ["dir_source"] }
+env_logger = "0.9.0"
+handlebars = { version = "4.1.5", features = ["dir_source"] }
 lazy_static = "1.4.0"
 log = "0.4.14"
 num_cpus = "1.13.0"
-sentry = "0.22.0"
-serde = "1.0.126"
-serde_derive = "1.0.126"
-serde_json = "1.0.64"
-thiserror = "1.0.25"
+sentry = "0.23.0"
+serde = "1.0.130"
+serde_derive = "1.0.130"
+serde_json = "1.0.72"
+thiserror = "1.0.30"
 url = "2.2.2"
