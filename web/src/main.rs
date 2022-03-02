@@ -4,7 +4,7 @@ use std::env;
 use std::error::Error;
 use std::io;
 
-use actix_web::{http::ContentEncoding, middleware, web, App, HttpServer};
+use actix_web::{middleware, web, App, HttpResponse, HttpServer};
 use dotenv::dotenv;
 use handlebars::Handlebars;
 
@@ -44,20 +44,19 @@ async fn main() -> io::Result<()> {
     // Run DB migrations for a new SQLite database
     run_migrations(&establish_connection(&url)).expect("Error running migrations");
 
-    let pool = build_pool(&url);
+    let app_data = web::Data::new(ServerData {
+        // Create database connection pool
+        db: build_pool(&url),
+        // Create handlebars registry
+        template: register_templates().unwrap(),
+    });
 
     HttpServer::new(move || {
-        // Create handlebars registry
-        let template = register_templates().unwrap();
-
         // Wire up the application
         App::new()
-            .wrap(middleware::Compress::new(ContentEncoding::Gzip))
+            .wrap(middleware::Compress::default())
             .wrap(middleware::Logger::default())
-            .data(ServerData {
-                db: pool.clone(),
-                template,
-            })
+            .app_data(app_data.clone())
             .service(actix_files::Files::new("/static", "./web/dist").use_etag(true))
             .service(web::resource("about").to(view::about))
             .service(
@@ -81,7 +80,7 @@ async fn main() -> io::Result<()> {
                 web::resource("api/{reference}.json")
                     .route(web::get().to(api::reference::<SwordDrill>)),
             )
-            .default_service(web::route().to(web::HttpResponse::NotFound))
+            .default_service(web::route().to(HttpResponse::NotFound))
     })
     .bind("0.0.0.0:8080")?
     .run()

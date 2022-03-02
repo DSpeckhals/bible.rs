@@ -1,5 +1,5 @@
 use actix_web::web;
-use actix_web::web::{HttpRequest, HttpResponse};
+use actix_web::{HttpRequest, HttpResponse};
 
 use db::models::Reference;
 use db::{SwordDrillable, VerseFormat};
@@ -14,20 +14,21 @@ type ApiResult = Result<HttpResponse, JsonError>;
 
 pub async fn reference<SD>(
     data: web::Data<ServerData>,
-    web::Path((path_reference,)): web::Path<(String,)>,
+    params: web::Path<(String,)>,
     req: HttpRequest,
 ) -> ApiResult
 where
     SD: SwordDrillable,
 {
+    let (path_reference,) = params.into_inner();
     let raw_reference = path_reference.replace("/", ".");
 
     if let Ok(reference) = raw_reference.parse::<Reference>() {
         let data_reference = reference.to_owned();
         let result = web::block(move || {
-            SD::verses(&reference, &VerseFormat::PlainText, &data.db.get().unwrap())
+            SD::verses(&reference, VerseFormat::PlainText, &data.db.get().unwrap())
         })
-        .await?;
+        .await??;
 
         let verses_data = VersesData::new(result, data_reference, &req);
         Ok(HttpResponse::Ok().json(verses_data))
@@ -46,12 +47,12 @@ where
 {
     if let Ok(reference) = query.q.parse::<Reference>() {
         let results = web::block(move || {
-            SD::verses(&reference, &VerseFormat::PlainText, &data.db.get().unwrap())
+            SD::verses(&reference, VerseFormat::PlainText, &data.db.get().unwrap())
         })
-        .await?;
+        .await??;
         Ok(HttpResponse::Ok().json(SearchResultData::from_verses(results, &req)))
     } else {
-        let results = web::block(move || SD::search(&query.q, &data.db.get().unwrap())).await?;
+        let results = web::block(move || SD::search(&query.q, &data.db.get().unwrap())).await??;
         Ok(HttpResponse::Ok().json(SearchResultData::from_verses_fts(results, &req)))
     }
 }

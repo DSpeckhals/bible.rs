@@ -36,7 +36,7 @@ impl Meta {
         Self {
             description: format!("The book of {}", book.name),
             json_ld: vec![
-                JsonLd::Book(BookJsonLd::new(&book, links)),
+                JsonLd::Book(BookJsonLd::new(book, links)),
                 JsonLd::BreadcrumbList(BreadcrumbListJsonLd::new(vec![
                     ListItemJsonLd::new(&links.books, 1),
                     ListItemJsonLd::new(&links.current, 2),
@@ -64,7 +64,7 @@ impl Meta {
                 Some(v) => format!("{}...", v.words),
             },
             json_ld: vec![
-                JsonLd::Reference(ReferenceJsonLd::new(&reference, &links)),
+                JsonLd::Reference(ReferenceJsonLd::new(reference, links)),
                 JsonLd::BreadcrumbList(BreadcrumbListJsonLd::new(vec![
                     ListItemJsonLd::new(&links.books, 1),
                     ListItemJsonLd::new(&links.book, 2),

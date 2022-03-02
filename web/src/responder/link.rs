@@ -292,7 +292,7 @@ pub struct AllBooksLinks {
 impl AllBooksLinks {
     pub(super) fn new(books: Vec<Book>, req: &HttpRequest) -> Self {
         Self {
-            books: books.iter().map(|b| book_url(&b.name, &req)).collect(),
+            books: books.iter().map(|b| book_url(&b.name, req)).collect(),
         }
     }
 }
@@ -320,7 +320,7 @@ mod tests {
                 &req,
             );
             assert_eq!(links.current.url, "/Genesis");
-            assert_eq!(links.previous.is_none(), true);
+            assert!(links.previous.is_none());
             assert_eq!(links.next.unwrap().url, "/Exodus");
 
             // Revelation
@@ -338,7 +338,7 @@ mod tests {
             );
             assert_eq!(links.current.url, "/Revelation");
             assert_eq!(links.previous.unwrap().url, "/Jude");
-            assert_eq!(links.next.is_none(), true);
+            assert!(links.next.is_none());
 
             // Typical Book
             let psa = BOOKS[19];
@@ -375,7 +375,7 @@ mod tests {
             assert_eq!(links.book.url, "/Genesis");
             assert_eq!(links.chapter.unwrap().url, "/Genesis/1");
             assert_eq!(links.current.url, "/Genesis/1");
-            assert_eq!(links.previous.is_none(), true);
+            assert!(links.previous.is_none());
             assert_eq!(links.next.unwrap().url, "/Genesis/2");
 
             // Revelation 22
@@ -390,7 +390,7 @@ mod tests {
             let links = VersesLinks::new(&book, &reference, &req);
             assert_eq!(links.current.url, "/Revelation/22");
             assert_eq!(links.previous.unwrap().url, "/Revelation/21");
-            assert_eq!(links.next.is_none(), true);
+            assert!(links.next.is_none());
 
             // First chapter
             let psa = BOOKS[19];

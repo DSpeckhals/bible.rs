@@ -1,7 +1,7 @@
 use std::convert::From;
 
 use actix_web::error::BlockingError;
-use actix_web::web::HttpResponse;
+use actix_web::HttpResponse;
 use actix_web::ResponseError;
 use handlebars::Handlebars;
 use lazy_static::lazy_static;
@@ -15,9 +15,6 @@ use crate::responder::{ErrorData, Meta, SearchResultData, TemplateData};
 /// Error type for the Bible.rs application.
 #[derive(Clone, Error, Debug)]
 pub enum Error {
-    #[error("There was an error with Actix. Cause: {0}")]
-    Actix(String),
-
     #[error("'{0}' was not found.")]
     BookNotFound(String),
 
@@ -48,16 +45,16 @@ impl From<DbError> for Error {
 /// Error to display as JSON
 pub struct JsonError(#[from] pub Error);
 
-// impl From<DbError> for JsonError {
-//     fn from(f: DbError) -> Self {
-//         JsonError(f.into())
-//     }
-// }
+impl From<DbError> for JsonError {
+    fn from(f: DbError) -> Self {
+        JsonError(f.into())
+    }
+}
 
 impl ResponseError for JsonError {
     fn error_response(&self) -> HttpResponse {
         match &self.0 {
-            Error::Actix { .. } | Error::Template => {
+            Error::Template => {
                 error!("Unhandled: {}", &self.0);
                 HttpResponse::InternalServerError().json(ErrorData::from_error(&self.0))
             }
@@ -73,12 +70,9 @@ impl ResponseError for JsonError {
     }
 }
 
-impl From<BlockingError<DbError>> for JsonError {
-    fn from(f: BlockingError<DbError>) -> Self {
-        JsonError(match f {
-            BlockingError::Canceled => Error::Actix(f.to_string()),
-            BlockingError::Error(db_e) => db_e.into(),
-        })
+impl From<BlockingError> for JsonError {
+    fn from(f: BlockingError) -> Self {
+        f.into()
     }
 }
 
@@ -98,14 +92,20 @@ lazy_static! {
 /// Error to display as HTML.
 pub struct HtmlError(#[from] pub Error);
 
+impl From<DbError> for HtmlError {
+    fn from(f: DbError) -> Self {
+        HtmlError(f.into())
+    }
+}
+
 impl ResponseError for HtmlError {
     fn error_response(&self) -> HttpResponse {
-        let body = &TemplateData::new(ErrorData::from_error(&self.0), Meta::for_error())
+        let body = TemplateData::new(ErrorData::from_error(&self.0), Meta::for_error())
             .to_html("error", &ERR_TPL)
             .unwrap();
 
         match self.0 {
-            Error::Actix { .. } | Error::Db { .. } | Error::Template => {
+            Error::Db { .. } | Error::Template => {
                 error!("Unhandled: {}", &self.0);
                 HttpResponse::InternalServerError()
             }
@@ -117,11 +117,8 @@ impl ResponseError for HtmlError {
     }
 }
 
-impl From<BlockingError<DbError>> for HtmlError {
-    fn from(f: BlockingError<DbError>) -> Self {
-        HtmlError(match f {
-            BlockingError::Canceled => Error::Actix(f.to_string()),
-            BlockingError::Error(db_e) => db_e.into(),
-        })
+impl From<BlockingError> for HtmlError {
+    fn from(f: BlockingError) -> Self {
+        f.into()
     }
 }

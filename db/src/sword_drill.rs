@@ -19,7 +19,7 @@ pub trait SwordDrillable {
     /// Looks up Bible verses for the given reference.
     fn verses(
         reference: &Reference,
-        format: &VerseFormat,
+        format: VerseFormat,
         conn: &SqliteConnection,
     ) -> Result<(Book, Vec<Verse>), DbError>;
 
@@ -56,7 +56,7 @@ pub struct SwordDrill;
 impl SwordDrillable for SwordDrill {
     fn verses(
         reference: &Reference,
-        format: &VerseFormat,
+        format: VerseFormat,
         conn: &SqliteConnection,
     ) -> Result<(Book, Vec<Verse>), DbError> {
         use crate::schema::verses as plain_text;
@@ -202,7 +202,7 @@ mod tests {
             {
                 let result = SwordDrill::verses(
                 &"Psalms 119:105".parse().unwrap(),
-                &VerseFormat::PlainText,
+                VerseFormat::PlainText,
                 &conn,
             )?;
 

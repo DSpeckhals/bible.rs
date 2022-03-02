@@ -1,5 +1,5 @@
 use actix_web::web;
-use actix_web::web::{HttpRequest, HttpResponse};
+use actix_web::{HttpRequest, HttpResponse};
 
 use db::models::Reference;
 use db::{SwordDrillable, VerseFormat};
@@ -27,7 +27,7 @@ where
     SD: SwordDrillable,
 {
     let db = data.db.to_owned();
-    let books = web::block(move || SD::all_books(&db.get().unwrap())).await?;
+    let books = web::block(move || SD::all_books(&db.get().unwrap())).await??;
 
     let books_data = AllBooksData::new(books, &req);
     let body = TemplateData::new(
@@ -45,14 +45,15 @@ where
 /// that has book metadata and a list of chapters.
 pub async fn book<SD>(
     data: web::Data<ServerData>,
-    web::Path((book_name,)): web::Path<(String,)>,
+    params: web::Path<(String,)>,
     req: HttpRequest,
 ) -> ViewResult
 where
     SD: SwordDrillable,
 {
+    let (book_name,) = params.into_inner();
     let db = data.db.to_owned();
-    let result = web::block(move || SD::book(&book_name, &db.get().unwrap())).await?;
+    let result = web::block(move || SD::book(&book_name, &db.get().unwrap())).await??;
     let book_data = BookData::new(result, &req);
     let body = TemplateData::new(
         &book_data,
@@ -70,20 +71,21 @@ where
 /// layer and looked up, returning an HTTP response with the verse body.
 pub async fn reference<SD>(
     data: web::Data<ServerData>,
-    web::Path((path_reference,)): web::Path<(String,)>,
+    params: web::Path<(String,)>,
     req: HttpRequest,
 ) -> ViewResult
 where
     SD: SwordDrillable,
 {
+    let (path_reference,) = params.into_inner();
     let db = data.db.to_owned();
     let raw_reference = path_reference.replace("/", ".");
 
     if let Ok(reference) = raw_reference.parse::<Reference>() {
         let data_reference = reference.to_owned();
         let result =
-            web::block(move || SD::verses(&reference, &VerseFormat::Html, &db.get().unwrap()))
-                .await?;
+            web::block(move || SD::verses(&reference, VerseFormat::Html, &db.get().unwrap()))
+                .await??;
         let verses_data = VersesData::new(result, data_reference, &req);
 
         if verses_data.verses.is_empty() {
@@ -119,7 +121,7 @@ where
 {
     let db = data.db.to_owned();
     let q = query.q.to_owned();
-    let result = web::block(move || SD::search(&query.q, &db.get().unwrap())).await?;
+    let result = web::block(move || SD::search(&query.q, &db.get().unwrap())).await??;
     let body = TemplateData::new(
         SearchResultData::from_verses_fts(result, &req),
         Meta::for_search(&q, &req.uri().to_string()),

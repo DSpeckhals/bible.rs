@@ -1,4 +1,4 @@
-use clap::clap_app;
+use clap::Parser;
 
 use std::env;
 use std::io::{self, Write};
@@ -8,26 +8,27 @@ use dotenv::dotenv;
 use db::models::Reference;
 use db::{establish_connection, SwordDrill, SwordDrillable, VerseFormat};
 
+#[derive(Parser, Debug)]
+#[clap(
+    version = "0.1",
+    author = "Dustin Speckhals <dustin1114@gmail.com>",
+    about = "CLI for looking up Bible verses"
+)]
+struct Opts {
+    #[clap(default_value = "John 3:16")]
+    reference: Reference,
+}
+
 fn main() -> io::Result<()> {
-    let matches = clap_app!(biblerscli =>
-        (version: "0.1")
-        (author: "Dustin Speckhals <dustin1114@gmail.com>")
-        (about: "CLI for looking up Bible verses")
-        (@arg REFERENCE: +required "The Bible reference to look up")
-    )
-    .get_matches();
+    let opts: Opts = Opts::parse();
+    let reference = opts.reference;
 
     dotenv().ok();
     let url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
     let conn = establish_connection(&url);
 
-    let reference: Reference = matches
-        .value_of("REFERENCE")
-        .unwrap_or("John 3:16")
-        .parse()
-        .expect("Invalid reference");
-    let result = SwordDrill::verses(&reference, &VerseFormat::PlainText, &conn);
+    let result = SwordDrill::verses(&reference, VerseFormat::PlainText, &conn);
 
     match result {
         Ok((book, verses)) => {
@@ -40,7 +41,7 @@ fn main() -> io::Result<()> {
                 }
             ))?;
             for v in verses {
-                io::stdout().write_fmt(format_args!("{} {}\n", v.verse, v.words))?;
+                io::stdout().write_fmt(format_args!("{}\t{}\n", v.verse, v.words))?;
             }
             Ok(())
         }

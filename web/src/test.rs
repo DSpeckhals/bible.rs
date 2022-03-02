@@ -25,9 +25,9 @@ where
             .service(web::resource("{reference:.+\\d}").name("reference")),
     );
 
-    System::new("test").block_on(async move {
+    System::new().block_on(async move {
         test::call_service(
-            &mut srv.await,
+            &srv.await,
             test::TestRequest::with_uri("/test").to_request(),
         )
         .await
@@ -48,7 +48,7 @@ pub struct TestSwordDrill;
 impl SwordDrillable for TestSwordDrill {
     fn verses(
         _: &Reference,
-        _: &VerseFormat,
+        _: VerseFormat,
         _: &DbConnection,
     ) -> Result<(Book, Vec<Verse>), DbError> {
         let book = test_book();
@@ -93,10 +93,10 @@ where
 {
     let srv = test::init_service(
         App::new()
-            .data(ServerData {
+            .app_data(web::Data::new(ServerData {
                 db: build_pool(":memory:"),
                 template: Handlebars::default(),
-            })
+            }))
             .service(web::resource("/").name("bible"))
             .service(web::resource("{book}").name("book"))
             .service(web::resource("{reference:.+\\d}").name("reference"))
@@ -106,7 +106,7 @@ where
 
     let req = test::TestRequest::with_uri(uri).to_request();
 
-    System::new("test").block_on(async move { test::read_response_json(&mut srv.await, req).await })
+    System::new().block_on(async move { test::call_and_read_body_json(&srv.await, req).await })
 }
 
 pub fn html_response(uri: &str) -> String {
@@ -118,10 +118,10 @@ pub fn html_response(uri: &str) -> String {
 
     let srv = test::init_service(
         App::new()
-            .data(ServerData {
+            .app_data(web::Data::new(ServerData {
                 db: build_pool(":memory:"),
                 template,
-            })
+            }))
             .service(web::resource("about").to(view::about))
             .service(
                 web::resource("/")
@@ -144,8 +144,8 @@ pub fn html_response(uri: &str) -> String {
 
     let req = test::TestRequest::with_uri(uri).to_request();
 
-    System::new("test").block_on(async move {
-        str::from_utf8(&test::read_response(&mut srv.await, req).await)
+    System::new().block_on(async move {
+        str::from_utf8(&test::call_and_read_body(&srv.await, req).await)
             .expect("Could not convert response to UTF8")
             .to_string()
     })
