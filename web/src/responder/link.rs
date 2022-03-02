@@ -111,14 +111,11 @@ fn chapter_url(b: &str, c: i32, req: &HttpRequest) -> Link {
 pub(super) fn verse_url(b: &str, c: i32, v: i32, req: &HttpRequest) -> Link {
     let chapter_string = c.to_string();
     let verse_string = v.to_string();
-    Link::new(
-        &req.url_for(
-            "reference",
-            &[format!("{}/{}#v{}", b, chapter_string, verse_string)],
-        )
-        .unwrap_or_else(invalid_url),
-        format!("{} {}:{}", b, chapter_string, verse_string),
-    )
+    let mut url = req
+        .url_for("reference", &[format!("{}/{}", b, chapter_string)])
+        .unwrap_or_else(invalid_url);
+    url.set_fragment(Some(&format!("v{}", verse_string)));
+    Link::new(&url, format!("{} {}:{}", b, chapter_string, verse_string))
 }
 
 /// Generates a URL for verses from the given book, chapter, and verse range.

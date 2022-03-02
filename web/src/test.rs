@@ -56,7 +56,7 @@ impl SwordDrillable for TestSwordDrill {
         let verse = Verse {
             id: 555,
             book: 19,
-            chapter: 1,
+            chapter: 119,
             verse: 105,
             words: "NUN. Thy word is a lamp unto my feet, and a light unto my path.".to_string(),
         };
@@ -76,7 +76,7 @@ impl SwordDrillable for TestSwordDrill {
         let book = test_book();
         let verse = VerseFTS {
             book: 19,
-            chapter: 1,
+            chapter: 119,
             verse: 105,
             words: "NUN. Thy word is a lamp unto my feet, and a <em>light</em> unto my path."
                 .to_string(),
