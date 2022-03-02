@@ -79,6 +79,7 @@ mod tests {
             result.matches[0].text,
             "NUN. Thy word is a lamp unto my feet, and a <em>light</em> unto my path."
         );
+        assert_eq!(result.matches[0].link.url, "/Psalms/119#v105");
 
         // By reference
         let result: SearchResultData = json_response("/api/search?q=psalms%20119:105");
@@ -86,5 +87,6 @@ mod tests {
             result.matches[0].text,
             "NUN. Thy word is a lamp unto my feet, and a light unto my path."
         );
+        assert_eq!(result.matches[0].link.url, "/Psalms/119#v105");
     }
 }

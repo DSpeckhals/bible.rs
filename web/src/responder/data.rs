@@ -114,7 +114,7 @@ impl AllBooksData {
 /// A search result.
 #[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct SearchResult {
-    link: Link,
+    pub link: Link,
     pub text: String,
 }
 
