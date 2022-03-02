@@ -1,5 +1,5 @@
 ################### SQLite3 Build ###################
-FROM debian:buster-slim as sqlite-build
+FROM docker.io/debian:bullseye-slim as sqlite-build
 
 WORKDIR /root
 
@@ -13,14 +13,15 @@ RUN apt-get update && \
         fossil && \
     rm -rf /var/lib/apt/lists/*
 
-RUN mkdir sqlite sqlite-build && \
+RUN mkdir sqlite && \
     cd sqlite && \
-    fossil clone --user=root http://www.sqlite.org/cgi/src sqlite.fossil && \
-    fossil open --user=root sqlite.fossil && \
+    fossil clone --user=root http://www.sqlite.org/cgi/src ../sqlite.fossil && \
+    fossil open --user=root ../sqlite.fossil && \
     fossil update --user=root trunk
 
-RUN cd sqlite-build \
-    && ../sqlite/configure --enable-fts5 --disable-fts3 --disable-fts4
+RUN mkdir sqlite-build && \
+    cd sqlite-build && \
+    ../sqlite/configure --enable-fts5 --disable-fts3 --disable-fts4
 
 RUN cd sqlite-build && \
     make libsqlite3.la && \
@@ -28,14 +29,14 @@ RUN cd sqlite-build && \
 
 
 ################### Rust Build ###################
-FROM rust:latest as rust-build
+FROM docker.io/rust:bullseye as rust-build
 
 # Clang/LLVM are required for building the libsqlite3-sys bindings
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get -y install \
-        clang-7 \
-        libclang-7-dev \
-        llvm-7-dev \
+        clang-11 \
+        libclang-11-dev \
+        llvm-11-dev \
         sassc && \
     rm -rf /var/lib/apt/lists/*
 
@@ -73,9 +74,8 @@ RUN mkdir -p web/dist/css && \
 
 
 ################### Server Build ###################
-FROM debian:buster-slim
+FROM docker.io/debian:bullseye-slim
 
-# Clang/LLVM are required for building the libsqlite3-sys bindings
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get -y install libssl-dev && \
     rm -rf /var/lib/apt/lists/*
