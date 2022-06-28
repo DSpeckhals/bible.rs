@@ -1,6 +1,5 @@
-use diesel::backend::Backend;
+use diesel::backend;
 use diesel::deserialize::{self, FromSql, FromSqlRow, Queryable};
-use diesel::row::Row;
 use diesel::sql_types::Text;
 use diesel::sqlite::Sqlite;
 use serde_derive::{Deserialize, Serialize};
@@ -17,14 +16,14 @@ pub struct Verse {
 
 /// Enum for the testaments in the Bible (Old or New). This is mapped
 /// to a column in the database table `books`.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, FromSqlRow)]
 pub enum Testament {
     Old,
     New,
 }
 
 impl FromSql<Text, Sqlite> for Testament {
-    fn from_sql(bytes: Option<&<Sqlite as Backend>::RawValue>) -> deserialize::Result<Self> {
+    fn from_sql(bytes: backend::RawValue<'_, Sqlite>) -> deserialize::Result<Self> {
         let testament =
             <String as FromSql<Text, Sqlite>>::from_sql(bytes).expect("Unexpected null testament");
         match testament.as_ref() {
@@ -32,20 +31,6 @@ impl FromSql<Text, Sqlite> for Testament {
             "NEW" => Ok(Testament::New),
             _ => Err("Unexpected testament in the Bible".into()),
         }
-    }
-}
-
-impl FromSqlRow<Text, Sqlite> for Testament {
-    fn build_from_row<T: Row<Sqlite>>(row: &mut T) -> deserialize::Result<Self> {
-        FromSql::<Text, Sqlite>::from_sql(row.take())
-    }
-}
-
-impl Queryable<Text, Sqlite> for Testament {
-    type Row = Self;
-
-    fn build(row: Self::Row) -> Self {
-        row
     }
 }
 

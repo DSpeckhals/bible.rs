@@ -27,7 +27,7 @@ where
     SD: SwordDrillable,
 {
     let db = data.db.to_owned();
-    let books = web::block(move || SD::all_books(&db.get().unwrap())).await??;
+    let books = web::block(move || SD::all_books(&mut db.get().unwrap())).await??;
 
     let books_data = AllBooksData::new(books, &req);
     let body = TemplateData::new(
@@ -53,7 +53,7 @@ where
 {
     let (book_name,) = params.into_inner();
     let db = data.db.to_owned();
-    let result = web::block(move || SD::book(&book_name, &db.get().unwrap())).await??;
+    let result = web::block(move || SD::book(&book_name, &mut db.get().unwrap())).await??;
     let book_data = BookData::new(result, &req);
     let body = TemplateData::new(
         &book_data,
@@ -79,12 +79,12 @@ where
 {
     let (path_reference,) = params.into_inner();
     let db = data.db.to_owned();
-    let raw_reference = path_reference.replace("/", ".");
+    let raw_reference = path_reference.replace('/', ".");
 
     if let Ok(reference) = raw_reference.parse::<Reference>() {
         let data_reference = reference.to_owned();
         let result =
-            web::block(move || SD::verses(&reference, VerseFormat::Html, &db.get().unwrap()))
+            web::block(move || SD::verses(&reference, VerseFormat::Html, &mut db.get().unwrap()))
                 .await??;
         let verses_data = VersesData::new(result, data_reference, &req);
 
@@ -121,7 +121,7 @@ where
 {
     let db = data.db.to_owned();
     let q = query.q.to_owned();
-    let result = web::block(move || SD::search(&query.q, &db.get().unwrap())).await??;
+    let result = web::block(move || SD::search(&query.q, &mut db.get().unwrap())).await??;
     let body = TemplateData::new(
         SearchResultData::from_verses_fts(result, &req),
         Meta::for_search(&q, &req.uri().to_string()),

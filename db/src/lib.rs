@@ -3,12 +3,11 @@
 #[macro_use]
 extern crate diesel;
 
-use std::io::stdout;
 use std::path::Path;
 
 use diesel::prelude::*;
 use diesel::r2d2;
-use diesel_migrations::{connection::MigrationConnection, run_pending_migrations_in_directory};
+use diesel_migrations::{FileBasedMigrations, MigrationHarness};
 use thiserror::Error;
 
 /// Type of a pooled SQLite connection manager.
@@ -59,14 +58,18 @@ pub fn establish_connection(db_url: &str) -> SqliteConnection {
 }
 
 /// Run any pending Diesel migrations.
-pub fn run_migrations<Conn>(conn: &Conn) -> Result<(), DbError>
-where
-    Conn: MigrationConnection,
-{
+pub fn run_migrations(conn: &mut SqliteConnection) -> Result<(), DbError> {
     let dir = Path::new("./db/migrations");
-    run_pending_migrations_in_directory(conn, dir, &mut stdout()).map_err(|e| DbError::Migration {
-        cause: e.to_string(),
-    })
+    let source = FileBasedMigrations::find_migrations_directory_in_path(dir).map_err(|e| {
+        DbError::Migration {
+            cause: e.to_string(),
+        }
+    })?;
+    conn.run_pending_migrations(source)
+        .map(|_| ())
+        .map_err(|e| DbError::Migration {
+            cause: e.to_string(),
+        })
 }
 
 pub mod models;

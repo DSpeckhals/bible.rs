@@ -26,9 +26,9 @@ fn main() -> io::Result<()> {
     dotenv().ok();
     let url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
-    let conn = establish_connection(&url);
+    let mut conn = establish_connection(&url);
 
-    let result = SwordDrill::verses(&reference, VerseFormat::PlainText, &conn);
+    let result = SwordDrill::verses(&reference, VerseFormat::PlainText, &mut conn);
 
     match result {
         Ok((book, verses)) => {

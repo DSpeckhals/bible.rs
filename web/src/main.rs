@@ -42,7 +42,7 @@ async fn main() -> io::Result<()> {
     let _sentry = sentry::init(sentry::ClientOptions::default());
 
     // Run DB migrations for a new SQLite database
-    run_migrations(&establish_connection(&url)).expect("Error running migrations");
+    run_migrations(&mut establish_connection(&url)).expect("Error running migrations");
 
     let app_data = web::Data::new(ServerData {
         // Create database connection pool
@@ -54,6 +54,7 @@ async fn main() -> io::Result<()> {
     HttpServer::new(move || {
         // Wire up the application
         App::new()
+            .wrap(sentry_actix::Sentry::new())
             .wrap(middleware::Compress::default())
             .wrap(middleware::Logger::default())
             .app_data(app_data.clone())
