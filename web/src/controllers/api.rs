@@ -21,12 +21,16 @@ where
     SD: SwordDrillable,
 {
     let (path_reference,) = params.into_inner();
-    let raw_reference = path_reference.replace("/", ".");
+    let raw_reference = path_reference.replace('/', ".");
 
     if let Ok(reference) = raw_reference.parse::<Reference>() {
         let data_reference = reference.to_owned();
         let result = web::block(move || {
-            SD::verses(&reference, VerseFormat::PlainText, &data.db.get().unwrap())
+            SD::verses(
+                &reference,
+                VerseFormat::PlainText,
+                &mut data.db.get().unwrap(),
+            )
         })
         .await??;
 
@@ -47,12 +51,17 @@ where
 {
     if let Ok(reference) = query.q.parse::<Reference>() {
         let results = web::block(move || {
-            SD::verses(&reference, VerseFormat::PlainText, &data.db.get().unwrap())
+            SD::verses(
+                &reference,
+                VerseFormat::PlainText,
+                &mut data.db.get().unwrap(),
+            )
         })
         .await??;
         Ok(HttpResponse::Ok().json(SearchResultData::from_verses(results, &req)))
     } else {
-        let results = web::block(move || SD::search(&query.q, &data.db.get().unwrap())).await??;
+        let results =
+            web::block(move || SD::search(&query.q, &mut data.db.get().unwrap())).await??;
         Ok(HttpResponse::Ok().json(SearchResultData::from_verses_fts(results, &req)))
     }
 }

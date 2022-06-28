@@ -5,20 +5,20 @@ authors = ["Dustin Speckhals <dustin1114@gmail.com>"]
 edition = "2021"
 
 [dependencies.diesel]
-version = "1.4.8"
+version = "2.0.0-rc.0"
 default-features = false
 features = ["sqlite", "r2d2"]
 
 [dependencies.libsqlite3-sys]
-version = ">=0.8.0, <0.24.0"
+version = ">=0.17.2, <0.25.0"
 default-features = false
 features = ["buildtime_bindgen"]
 
 [dependencies]
-diesel_migrations = "1.4.0"
+diesel_migrations = "2.0.0-rc.0"
 env_logger = "0.9.0"
 lazy_static = "1.4.0"
-regex = "1.5.4"
-serde = "1.0.130"
-serde_derive = "1.0.130"
-thiserror = "1.0.30"
+regex = "1.5.6"
+serde = "1.0.137"
+serde_derive = "1.0.137"
+thiserror = "1.0.31"

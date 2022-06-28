@@ -49,7 +49,7 @@ impl SwordDrillable for TestSwordDrill {
     fn verses(
         _: &Reference,
         _: VerseFormat,
-        _: &DbConnection,
+        _: &mut DbConnection,
     ) -> Result<(Book, Vec<Verse>), DbError> {
         let book = test_book();
 
@@ -64,15 +64,15 @@ impl SwordDrillable for TestSwordDrill {
         Ok((book, vec![verse]))
     }
 
-    fn book(_: &str, _: &DbConnection) -> Result<(Book, Vec<i32>), DbError> {
+    fn book(_: &str, _: &mut DbConnection) -> Result<(Book, Vec<i32>), DbError> {
         Ok((test_book(), (1..=150).collect()))
     }
 
-    fn all_books(_: &DbConnection) -> Result<Vec<Book>, DbError> {
+    fn all_books(_: &mut DbConnection) -> Result<Vec<Book>, DbError> {
         Ok(vec![test_book()])
     }
 
-    fn search(_: &str, _: &DbConnection) -> Result<Vec<(VerseFTS, Book)>, DbError> {
+    fn search(_: &str, _: &mut DbConnection) -> Result<Vec<(VerseFTS, Book)>, DbError> {
         let book = test_book();
         let verse = VerseFTS {
             book: 19,

@@ -20,7 +20,7 @@ pub trait SwordDrillable {
     fn verses(
         reference: &Reference,
         format: VerseFormat,
-        conn: &SqliteConnection,
+        conn: &mut SqliteConnection,
     ) -> Result<(Book, Vec<Verse>), DbError>;
 
     /// Looks up the Bible book with the given book name.
@@ -31,10 +31,10 @@ pub trait SwordDrillable {
     /// manner.
     ///
     /// If found, returns the resulting book and the list of its chapters.
-    fn book(book_name: &str, conn: &SqliteConnection) -> Result<(Book, Vec<i32>), DbError>;
+    fn book(book_name: &str, conn: &mut SqliteConnection) -> Result<(Book, Vec<i32>), DbError>;
 
     /// Gets all books in the Bible.
-    fn all_books(conn: &SqliteConnection) -> Result<Vec<Book>, DbError>;
+    fn all_books(conn: &mut SqliteConnection) -> Result<Vec<Book>, DbError>;
 
     /// Searches the database using the SQLite 3 full text search extension.
     ///
@@ -47,7 +47,7 @@ pub trait SwordDrillable {
     /// quotation marks. This cannot be assumed safe in other translations.
     ///
     /// All characters other than alpha and quotations are stripped out.
-    fn search(query: &str, conn: &SqliteConnection) -> Result<Vec<(VerseFTS, Book)>, DbError>;
+    fn search(query: &str, conn: &mut SqliteConnection) -> Result<Vec<(VerseFTS, Book)>, DbError>;
 }
 
 /// Main implementation for the [SwordDrillable](crate::sword_drill::SwordDrillable) trait.
@@ -57,7 +57,7 @@ impl SwordDrillable for SwordDrill {
     fn verses(
         reference: &Reference,
         format: VerseFormat,
-        conn: &SqliteConnection,
+        conn: &mut SqliteConnection,
     ) -> Result<(Book, Vec<Verse>), DbError> {
         use crate::schema::verses as plain_text;
         use crate::schema::verses_html as html;
@@ -96,11 +96,11 @@ impl SwordDrillable for SwordDrill {
         })
     }
 
-    fn book(book_name: &str, conn: &SqliteConnection) -> Result<(Book, Vec<i32>), DbError> {
+    fn book(book_name: &str, conn: &mut SqliteConnection) -> Result<(Book, Vec<i32>), DbError> {
         use crate::schema::book_abbreviations as ba;
         use crate::schema::books as b;
 
-        let (book, _) = b::table
+        let (book, _): (Book, BookAbbreviation) = b::table
             .inner_join(ba::table)
             .filter(ba::abbreviation.eq(book_name.to_lowercase()))
             .first::<(Book, BookAbbreviation)>(conn)
@@ -117,7 +117,7 @@ impl SwordDrillable for SwordDrill {
         Ok((book, chapters))
     }
 
-    fn all_books(conn: &SqliteConnection) -> Result<Vec<Book>, DbError> {
+    fn all_books(conn: &mut SqliteConnection) -> Result<Vec<Book>, DbError> {
         use crate::schema::books::dsl::*;
 
         books.order_by(id).load(conn).map_err(|e| DbError::Other {
@@ -125,7 +125,7 @@ impl SwordDrillable for SwordDrill {
         })
     }
 
-    fn search(query: &str, conn: &SqliteConnection) -> Result<Vec<(VerseFTS, Book)>, DbError> {
+    fn search(query: &str, conn: &mut SqliteConnection) -> Result<Vec<(VerseFTS, Book)>, DbError> {
         use crate::schema::books;
         use crate::schema::verses_fts;
 
@@ -180,30 +180,31 @@ impl SwordDrillable for SwordDrill {
 
 #[cfg(test)]
 mod tests {
-    use std::io::stdout;
     use std::path::Path;
 
-    use diesel_migrations::run_pending_migrations_in_directory;
+    use diesel_migrations::{FileBasedMigrations, MigrationHarness};
 
     use super::*;
     use crate::establish_connection;
 
     #[test]
     fn all() {
-        let conn = {
-            let conn = establish_connection(":memory:");
-            run_pending_migrations_in_directory(&conn, &Path::new("./migrations"), &mut stdout())
-                .unwrap();
+        let mut conn = {
+            let mut conn = establish_connection(":memory:");
+            let source =
+                FileBasedMigrations::find_migrations_directory_in_path(Path::new("./migrations"))
+                    .unwrap();
+            conn.run_pending_migrations(source).unwrap();
             conn
         };
 
-        conn.test_transaction::<_, DbError, _>(|| {
+        conn.test_transaction::<_, DbError, _>(|c| {
             // Verses
             {
                 let result = SwordDrill::verses(
                 &"Psalms 119:105".parse().unwrap(),
                 VerseFormat::PlainText,
-                &conn,
+                c,
             )?;
 
             assert_eq!(result.0.name, "Psalms");
@@ -215,7 +216,7 @@ mod tests {
 
             // Book
             {
-                let result = SwordDrill::book("psa", &conn)?;
+                let result = SwordDrill::book("psa", c)?;
 
             assert_eq!(result.0.name, "Psalms");
             assert_eq!(result.1.len(), 150);
@@ -223,7 +224,7 @@ mod tests {
 
             // All books
             {
-                let result = SwordDrill::all_books(&conn)?;
+                let result = SwordDrill::all_books(c)?;
 
             assert_eq!(result.len(), 66);
             assert_eq!(result[64].name, "Jude");
@@ -231,7 +232,7 @@ mod tests {
 
             // Search - Fuzzy words
             {
-                let result = SwordDrill::search("fire hammer rock", &conn)?;
+                let result = SwordDrill::search("fire hammer rock", c)?;
 
                 assert_eq!(result.len(), 1);
                 assert_eq!(result[0].0.book, 24);
@@ -246,13 +247,13 @@ mod tests {
 
             // Search - Leading number followed by a space returns an empty result
             {
-                let result = SwordDrill::search("1 ", &conn)?;
+                let result = SwordDrill::search("1 ", c)?;
                 assert_eq!(result.len(), 0);
             }
 
             // Search - Phrase
             {
-                let result = SwordDrill::search("\"like as a fire\"", &conn)?;
+                let result = SwordDrill::search("\"like as a fire\"", c)?;
 
                 assert_eq!(result.len(), 1);
                 assert_eq!(result[0].0.book, 24);
