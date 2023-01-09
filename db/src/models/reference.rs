@@ -2,8 +2,6 @@ use std::fmt;
 use std::ops::RangeInclusive;
 use std::str::FromStr;
 
-use lazy_static::lazy_static;
-use regex::{Match, Regex};
 use serde_derive::{Deserialize, Serialize};
 
 use crate::DbError;
@@ -47,73 +45,97 @@ impl fmt::Display for Reference {
     }
 }
 
+const MAX_REFERENCE_SIZE: usize = 100;
+
+enum State {
+    Init,
+    Book,
+    Chapter,
+    VerseFrom,
+    VerseTo,
+}
+
 impl FromStr for Reference {
     type Err = DbError;
 
     fn from_str(s: &str) -> Result<Reference, Self::Err> {
-        lazy_static! {
-            static ref REF_RE: Regex =
-                Regex::new(r"^(\w+(?: [a-zA-Z]+(?: [a-zA-Z]+)?)?)(?:\.| )((?:[0-9\-:\.])+)$")
-                    .unwrap();
-            static ref CV_RE: Regex =
-                Regex::new(r"^(\d{1,3})(?:[:\.](\d{1,3})?(?:-(\d{1,3}))?)?$").unwrap();
+        if s.len() > MAX_REFERENCE_SIZE || s.is_empty() {
+            return Err(DbError::InvalidReference {
+                reference: s[..MAX_REFERENCE_SIZE].to_string(),
+            });
         }
 
-        let ref_caps = REF_RE.captures(s).ok_or_else(|| invalid_reference(s))?;
-        match (ref_caps.get(1), ref_caps.get(2)) {
-            // Book and chapter/verse reference
-            (Some(book), Some(cv)) => {
-                let cv_caps = CV_RE
-                    .captures(cv.as_str())
-                    .ok_or_else(|| invalid_reference(s))?;
-                let book = book.as_str().to_string();
-
-                match (cv_caps.get(1), cv_caps.get(2), cv_caps.get(3)) {
-                    // Chapter only
-                    (Some(chapter), None, None) => Ok(Reference {
-                        book,
-                        chapter: parse_num_match(chapter)?,
-                        verses: None,
-                    }),
-                    // Chapter and one verse
-                    (Some(chapter), Some(verse), None) => {
-                        let verse = parse_num_match(verse)?;
-                        Ok(Reference {
-                            book,
-                            chapter: parse_num_match(chapter)?,
-                            verses: Some(verse..=verse),
-                        })
+        let mut state = State::Init;
+        let mut book_part = String::new();
+        let mut chapter_part = String::new();
+        let mut verse_from_part = String::new();
+        let mut verse_to_part = String::new();
+        for c in s.chars() {
+            match state {
+                State::Init => {
+                    book_part.push(c);
+                    state = State::Book;
+                }
+                State::Book => {
+                    if c.is_numeric() {
+                        chapter_part.push(c);
+                        state = State::Chapter;
+                    } else if c.is_alphabetic() || c.is_whitespace() {
+                        book_part.push(c);
                     }
-                    // Chapter with more than one verse
-                    (Some(chapter), Some(verse_start), Some(verse_end)) => {
-                        let verse_start = parse_num_match(verse_start)?;
-                        let verse_end = parse_num_match(verse_end)?;
-                        Ok(Reference {
-                            book,
-                            chapter: parse_num_match(chapter)?,
-                            verses: Some(verse_start..=verse_end),
-                        })
+                }
+                State::Chapter => {
+                    if c.is_numeric() {
+                        chapter_part.push(c);
+                    } else if c == ':' || c == '.' {
+                        state = State::VerseFrom;
                     }
-                    _ => Err(invalid_reference(s)),
+                }
+                State::VerseFrom => {
+                    if c == '-' {
+                        state = State::VerseTo;
+                    } else if c.is_numeric() {
+                        verse_from_part.push(c);
+                    }
+                }
+                State::VerseTo => {
+                    if c.is_numeric() {
+                        verse_to_part.push(c);
+                    }
                 }
             }
-            _ => Err(invalid_reference(s)),
         }
+
+        let r = Reference {
+            book: book_part.trim().to_string(),
+            chapter: chapter_part
+                .parse()
+                .map_err(|_| DbError::InvalidReference {
+                    reference: s.to_string(),
+                })?,
+            verses: if verse_from_part.is_empty() {
+                None
+            } else {
+                Some(RangeInclusive::new(
+                    parse_num(verse_from_part.clone())?,
+                    if verse_to_part.is_empty() {
+                        parse_num(verse_from_part)?
+                    } else {
+                        parse_num(verse_to_part)?
+                    },
+                ))
+            },
+        };
+
+        Ok(r)
     }
 }
 
-/// Parse a [Match](regex.Match.html) into an i32.
-fn parse_num_match(m: Match<'_>) -> Result<i32, DbError> {
-    m.as_str().parse().map_err(|_| DbError::InvalidReference {
-        reference: m.as_str().to_string(),
-    })
-}
-
-/// Create an invalid reference error from the input.
-fn invalid_reference(s: &str) -> DbError {
-    DbError::InvalidReference {
+/// Parse a [Match](String.html) into an i32.
+fn parse_num(s: String) -> Result<i32, DbError> {
+    s.parse().map_err(|_| DbError::InvalidReference {
         reference: s.to_string(),
-    }
+    })
 }
 
 #[cfg(test)]

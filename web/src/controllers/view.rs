@@ -30,11 +30,8 @@ where
     let books = web::block(move || SD::all_books(&mut db.get().unwrap())).await??;
 
     let books_data = AllBooksData::new(books, &req);
-    let body = TemplateData::new(
-        books_data.to_owned(),
-        Meta::for_all_books(&books_data.links),
-    )
-    .to_html("all-books", &data.template)?;
+    let meta = Meta::for_all_books(&books_data.links);
+    let body = TemplateData::new(books_data, meta).to_html("all-books", &data.template)?;
 
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
@@ -54,7 +51,7 @@ where
     let (book_name,) = params.into_inner();
     let db = data.db.to_owned();
     let result = web::block(move || SD::book(&book_name, &mut db.get().unwrap())).await??;
-    let book_data = BookData::new(result, &req);
+    let book_data = BookData::new(result, &data.books, &req);
     let body = TemplateData::new(
         &book_data,
         Meta::for_book(&book_data.book, &book_data.links),
@@ -79,6 +76,7 @@ where
 {
     let (path_reference,) = params.into_inner();
     let db = data.db.to_owned();
+    let books = &data.books;
     let raw_reference = path_reference.replace('/', ".");
 
     if let Ok(reference) = raw_reference.parse::<Reference>() {
@@ -86,7 +84,7 @@ where
         let result =
             web::block(move || SD::verses(&reference, VerseFormat::Html, &mut db.get().unwrap()))
                 .await??;
-        let verses_data = VersesData::new(result, data_reference, &req);
+        let verses_data = VersesData::new(result, data_reference, books, &req);
 
         if verses_data.verses.is_empty() {
             return Err(Error::InvalidReference(raw_reference).into());
@@ -134,27 +132,27 @@ where
 mod tests {
     use crate::test::html_response;
 
-    #[test]
-    fn about() {
-        let result = html_response("/about");
+    #[actix_web::test]
+    async fn about() {
+        let result = html_response("/about").await;
         assert!(result.contains("Where Bible.rs Shines"));
     }
 
-    #[test]
-    fn all_books() {
-        let result = html_response("/");
+    #[actix_web::test]
+    async fn all_books() {
+        let result = html_response("/").await;
         assert!(result.contains("/Psalms"));
     }
 
-    #[test]
-    fn book() {
-        let result = html_response("/Psalms");
+    #[actix_web::test]
+    async fn book() {
+        let result = html_response("/Psalms").await;
         assert!(result.contains("/Psalms/150"));
     }
 
-    #[test]
-    fn reference() {
-        let result = html_response("/Psalms/119");
+    #[actix_web::test]
+    async fn reference() {
+        let result = html_response("/Psalms/119").await;
         assert!(result.contains("NUN. Thy word is a lamp unto my feet, and a light unto my path."));
     }
 }

@@ -1,8 +1,6 @@
 use diesel::prelude::*;
 use diesel::result::Error;
 use diesel::sql_types::{Integer, Text};
-use lazy_static::lazy_static;
-use regex::Regex;
 
 use crate::models::*;
 use crate::{DbError, VerseFormat};
@@ -129,14 +127,13 @@ impl SwordDrillable for SwordDrill {
         use crate::schema::books;
         use crate::schema::verses_fts;
 
-        lazy_static! {
-            static ref ALPHA_NUM: Regex = Regex::new(r"[^a-zA-Z ]+").unwrap();
-        }
-
         let had_quote = query.contains('"');
 
         // Replace all characters that aren't alpha or space
-        let mut query = ALPHA_NUM.replace_all(query, "").to_string();
+        let query: String = query
+            .chars()
+            .filter(|c| c.is_alphabetic() || *c == ' ')
+            .collect();
 
         // Don't even try to run the query if there are no characters
         if query.trim().is_empty() {
@@ -145,7 +142,7 @@ impl SwordDrillable for SwordDrill {
 
         // Add back quotes safely if it had a quote before, and was removed
         // This makes FTS5 query the string as a phrase.
-        query = if had_quote {
+        let query = if had_quote {
             format!("\"{}\"", query)
         } else {
             query

@@ -5,7 +5,7 @@ services:
     image: ghcr.io/dspeckhals/bible.rs:latest
 
   gateway:
-    image: nginx:1.17.10
+    image: nginx:1.23.3
     ports:
       - "80:80"
       - "443:443"

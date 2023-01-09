@@ -53,8 +53,7 @@
         var startY;
         var distX;
         var distY;
-        var threshold = 50;
-        var restraint = 50;
+        var threshold = 100;
         var allowedTime = 300;
         var elapsedTime;
         var startTime;
@@ -76,15 +75,12 @@
             distY = touchObj.pageY - startY;
             elapsedTime = new Date().getTime() - startTime;
 
-            if (elapsedTime <= allowedTime) {
-                if (Math.abs(distX) >= threshold && Math.abs(distY) <= restraint) {
-                    swipeDir = (distX < 0)? "left" : "right";
-                }
-                else if (Math.abs(distY) >= threshold && Math.abs(distX) <= restraint) {
-                    swipeDir = (distY < 0)? "up" : "down";
-                }
+            if (elapsedTime <= allowedTime
+                && Math.abs(distX) > Math.abs(distY)
+                && Math.abs(distX) >= threshold) {
+                    handleSwipe((distX < 0) ? "left" : "right");
             }
-            handleSwipe(swipeDir);
+
         }, false);
     }
 

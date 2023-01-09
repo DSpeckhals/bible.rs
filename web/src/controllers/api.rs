@@ -21,20 +21,18 @@ where
     SD: SwordDrillable,
 {
     let (path_reference,) = params.into_inner();
+    let db = data.db.to_owned();
+    let books = &data.books;
     let raw_reference = path_reference.replace('/', ".");
 
     if let Ok(reference) = raw_reference.parse::<Reference>() {
         let data_reference = reference.to_owned();
         let result = web::block(move || {
-            SD::verses(
-                &reference,
-                VerseFormat::PlainText,
-                &mut data.db.get().unwrap(),
-            )
+            SD::verses(&reference, VerseFormat::PlainText, &mut db.get().unwrap())
         })
         .await??;
 
-        let verses_data = VersesData::new(result, data_reference, &req);
+        let verses_data = VersesData::new(result, data_reference, books, &req);
         Ok(HttpResponse::Ok().json(verses_data))
     } else {
         Err(Error::InvalidReference(raw_reference).into())
@@ -71,19 +69,19 @@ mod tests {
     use crate::responder::{SearchResultData, VersesData};
     use crate::test::json_response;
 
-    #[test]
-    fn reference() {
-        let result: VersesData = json_response("/api/psalms.119.105.json");
+    #[actix_web::test]
+    async fn reference() {
+        let result: VersesData = json_response("/api/psalms.119.105.json").await;
         assert_eq!(
             result.verses[0].words,
             "NUN. Thy word is a lamp unto my feet, and a light unto my path."
         );
     }
 
-    #[test]
-    fn search() {
+    #[actix_web::test]
+    async fn search() {
         // By words
-        let result: SearchResultData = json_response("/api/search?q=word");
+        let result: SearchResultData = json_response("/api/search?q=word").await;
         assert_eq!(
             result.matches[0].text,
             "NUN. Thy word is a lamp unto my feet, and a <em>light</em> unto my path."
@@ -91,7 +89,7 @@ mod tests {
         assert_eq!(result.matches[0].link.url, "/Psalms/119#v105");
 
         // By reference
-        let result: SearchResultData = json_response("/api/search?q=psalms%20119:105");
+        let result: SearchResultData = json_response("/api/search?q=psalms%20119:105").await;
         assert_eq!(
             result.matches[0].text,
             "NUN. Thy word is a lamp unto my feet, and a light unto my path."

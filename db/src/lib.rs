@@ -10,6 +10,8 @@ use diesel::r2d2;
 use diesel_migrations::{FileBasedMigrations, MigrationHarness};
 use thiserror::Error;
 
+use crate::models::Book;
+
 /// Type of a pooled SQLite connection manager.
 pub type SqliteConnectionManager = r2d2::ConnectionManager<SqliteConnection>;
 
@@ -70,6 +72,14 @@ pub fn run_migrations(conn: &mut SqliteConnection) -> Result<(), DbError> {
         .map_err(|e| DbError::Migration {
             cause: e.to_string(),
         })
+}
+
+pub fn prefetch_books(conn: &mut SqliteConnection) -> Result<Vec<Book>, DbError> {
+    use crate::schema::books;
+
+    books::table.load(conn).map_err(|e| DbError::Other {
+        cause: format!("Could not preload book data from database. Cause: {e}"),
+    })
 }
 
 pub mod models;

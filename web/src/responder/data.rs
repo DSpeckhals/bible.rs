@@ -53,6 +53,7 @@ impl VersesData {
     pub fn new(
         (book, verses): (Book, Vec<Verse>),
         mut reference: Reference,
+        books: &[Book],
         req: &HttpRequest,
     ) -> Self {
         reference.book = book.name.to_owned();
@@ -65,7 +66,7 @@ impl VersesData {
             None
         };
         let reference_string = reference.to_string();
-        let links = VersesLinks::new(&book, &reference, req);
+        let links = VersesLinks::new(&book, &reference, books, req);
 
         Self {
             book,
@@ -87,8 +88,8 @@ pub struct BookData {
 
 impl BookData {
     /// Creates new book data.
-    pub fn new((book, chapters): (Book, Vec<i32>), req: &HttpRequest) -> Self {
-        let links = BookLinks::new(&book, &chapters, req);
+    pub fn new((book, chapters): (Book, Vec<i32>), books: &[Book], req: &HttpRequest) -> Self {
+        let links = BookLinks::new(&book, &chapters, books, req);
         Self {
             book,
             chapters,
@@ -182,22 +183,13 @@ mod tests {
     use super::*;
     use handlebars::Handlebars;
 
-    use db::models::*;
-
-    use crate::responder::link::BOOKS;
     use crate::responder::meta::Meta;
     use crate::test::*;
 
-    #[test]
-    fn verses_data() {
+    #[actix_web::test]
+    async fn verses_data() {
         with_service(|req| {
-            let prov = BOOKS[20];
-            let book = Book {
-                id: 20,
-                name: prov.0.to_string(),
-                testament: Testament::Old,
-                chapter_count: prov.1,
-            };
+            let book = BOOKS[19].clone();
             let verses = vec![Verse {
                 book: 20,
                 chapter: 3,
@@ -207,42 +199,31 @@ mod tests {
 
             }];
             let reference: Reference = "Proverbs 3:5".parse().unwrap();
-            let data = VersesData::new((book, verses), reference, &req);
+            let data = VersesData::new((book, verses), reference, &BOOKS, &req);
 
             assert_eq!(data.reference_string, "Proverbs 3:5");
             assert_eq!(data.reference.book, "Proverbs");
             assert_eq!(data.verses.len(), 1);
-        });
+        }).await;
     }
 
-    #[test]
-    fn book_data() {
+    #[actix_web::test]
+    async fn book_data() {
         with_service(|req| {
-            let prov = BOOKS[20];
-            let book = Book {
-                id: 20,
-                name: prov.0.to_string(),
-                testament: Testament::Old,
-                chapter_count: prov.1,
-            };
+            let book = BOOKS[19].clone();
             let chapters = (1..=book.chapter_count).collect::<Vec<i32>>();
-            let data = BookData::new((book, chapters), &req);
+            let data = BookData::new((book, chapters), &BOOKS, &req);
 
             assert_eq!(data.book.name, "Proverbs");
             assert_eq!(data.chapters.len(), 31);
-        });
+        })
+        .await;
     }
 
-    #[test]
-    fn search_result_data() {
+    #[actix_web::test]
+    async fn search_result_data() {
         with_service(|req| {
-            let prov = BOOKS[20];
-            let book = Book {
-                id: 20,
-                name: prov.0.to_string(),
-                testament: Testament::Old,
-                chapter_count: prov.1,
-            };
+            let book = BOOKS[19].clone();
             let book_2 = book.clone();
             let verses = vec![Verse {
                 book: 20,
@@ -264,7 +245,7 @@ mod tests {
             }, book_2)];
             let data = SearchResultData::from_verses_fts(results, &req);
             assert_eq!(data.matches.len(), 1);
-        });
+        }).await;
     }
 
     #[test]

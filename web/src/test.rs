@@ -1,7 +1,8 @@
 use std::str;
 
-use actix_web::{rt::System, test, web, App, HttpRequest, HttpResponse};
+use actix_web::{test, web, App, HttpRequest, HttpResponse};
 use handlebars::Handlebars;
+use lazy_static::lazy_static;
 use serde::de::DeserializeOwned;
 
 use db::models::*;
@@ -10,7 +11,7 @@ use db::*;
 use crate::ServerData;
 use crate::{api, view};
 
-pub fn with_service<F>(f: F)
+pub async fn with_service<F>(f: F)
 where
     F: Fn(HttpRequest) + Clone + 'static,
 {
@@ -25,13 +26,11 @@ where
             .service(web::resource("{reference:.+\\d}").name("reference")),
     );
 
-    System::new().block_on(async move {
-        test::call_service(
-            &srv.await,
-            test::TestRequest::with_uri("/test").to_request(),
-        )
-        .await
-    });
+    test::call_service(
+        &srv.await,
+        test::TestRequest::with_uri("/test").to_request(),
+    )
+    .await;
 }
 
 fn test_book() -> Book {
@@ -87,13 +86,14 @@ impl SwordDrillable for TestSwordDrill {
     }
 }
 
-pub fn json_response<T>(uri: &str) -> T
+pub async fn json_response<T>(uri: &str) -> T
 where
     T: DeserializeOwned,
 {
     let srv = test::init_service(
         App::new()
             .app_data(web::Data::new(ServerData {
+                books: BOOKS.to_vec(),
                 db: build_pool(":memory:"),
                 template: Handlebars::default(),
             }))
@@ -105,11 +105,10 @@ where
     );
 
     let req = test::TestRequest::with_uri(uri).to_request();
-
-    System::new().block_on(async move { test::call_and_read_body_json(&srv.await, req).await })
+    test::call_and_read_body_json(&srv.await, req).await
 }
 
-pub fn html_response(uri: &str) -> String {
+pub async fn html_response(uri: &str) -> String {
     let mut template = Handlebars::new();
     template.set_strict_mode(true);
     template
@@ -119,6 +118,7 @@ pub fn html_response(uri: &str) -> String {
     let srv = test::init_service(
         App::new()
             .app_data(web::Data::new(ServerData {
+                books: BOOKS.to_vec(),
                 db: build_pool(":memory:"),
                 template,
             }))
@@ -144,9 +144,91 @@ pub fn html_response(uri: &str) -> String {
 
     let req = test::TestRequest::with_uri(uri).to_request();
 
-    System::new().block_on(async move {
-        str::from_utf8(&test::call_and_read_body(&srv.await, req).await)
-            .expect("Could not convert response to UTF8")
-            .to_string()
+    str::from_utf8(&test::call_and_read_body(&srv.await, req).await)
+        .expect("Could not convert response to UTF8")
+        .to_string()
+}
+
+lazy_static! {
+    pub static ref BOOKS: Vec<Book> = [
+        ("Genesis", 50),
+        ("Exodus", 40),
+        ("Leviticus", 27),
+        ("Numbers", 36),
+        ("Deuteronomy", 34),
+        ("Joshua", 24),
+        ("Judges", 21),
+        ("Ruth", 4),
+        ("1 Samuel", 31),
+        ("2 Samuel", 24),
+        ("1 Kings", 22),
+        ("2 Kings", 25),
+        ("1 Chronicles", 29),
+        ("2 Chronicles", 36),
+        ("Ezra", 10),
+        ("Nehemiah", 13),
+        ("Esther", 10),
+        ("Job", 42),
+        ("Psalms", 150),
+        ("Proverbs", 31),
+        ("Ecclesiastes", 12),
+        ("Song of Solomon", 8),
+        ("Isaiah", 66),
+        ("Jeremiah", 52),
+        ("Lamentations", 5),
+        ("Ezekiel", 48),
+        ("Daniel", 12),
+        ("Hosea", 14),
+        ("Joel", 3),
+        ("Amos", 9),
+        ("Obadiah", 1),
+        ("Jonah", 4),
+        ("Micah", 7),
+        ("Nahum", 3),
+        ("Habakkuk", 3),
+        ("Zephaniah", 3),
+        ("Haggai", 2),
+        ("Zechariah", 14),
+        ("Malachi", 4),
+        ("Matthew", 28),
+        ("Mark", 16),
+        ("Luke", 24),
+        ("John", 21),
+        ("Acts", 28),
+        ("Romans", 16),
+        ("1 Corinthians", 16),
+        ("2 Corinthians", 13),
+        ("Galatians", 6),
+        ("Ephesians", 6),
+        ("Philippians", 4),
+        ("Colossians", 4),
+        ("1 Thessalonians", 5),
+        ("2 Thessalonians", 3),
+        ("1 Timothy", 6),
+        ("2 Timothy", 4),
+        ("Titus", 3),
+        ("Philemon", 1),
+        ("Hebrews", 13),
+        ("James", 5),
+        ("1 Peter", 5),
+        ("2 Peter", 3),
+        ("1 John", 5),
+        ("2 John", 1),
+        ("3 John", 1),
+        ("Jude", 1),
+        ("Revelation", 22),
+    ]
+    .iter()
+    .enumerate()
+    .map(|(i, (name, chapter_count))| Book {
+        id: (i + 1) as i32,
+        name: name.to_string(),
+        chapter_count: *chapter_count,
+        testament: if i < 40 {
+            Testament::Old
+        } else {
+            Testament::New
+        },
     })
+    .collect();
 }
