@@ -8,5 +8,5 @@ edition = "2021"
 path = "../db"
 
 [dependencies]
-clap = { version = "3.2.7", features = ["derive"] }
+clap = { version = "4.0.32", features = ["derive"] }
 dotenv = "0.15.0"

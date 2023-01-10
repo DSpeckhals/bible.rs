@@ -7,13 +7,18 @@ use std::io;
 use actix_web::{middleware, web, App, HttpResponse, HttpServer};
 use dotenv::dotenv;
 use handlebars::Handlebars;
+use log::info;
 
-use db::{build_pool, establish_connection, run_migrations, SqliteConnectionPool, SwordDrill};
+use db::{
+    build_pool, establish_connection, prefetch_books, run_migrations, SqliteConnectionPool,
+    SwordDrill,
+};
 
 use crate::controllers::{api, view};
 
 /// Represents the [server data](actix_web.web.Data.html) for the application.
 pub struct ServerData {
+    pub books: Vec<db::models::Book>,
     pub db: SqliteConnectionPool,
     pub template: Handlebars<'static>,
 }
@@ -39,15 +44,22 @@ async fn main() -> io::Result<()> {
     let url = env::var("DATABASE_URL").unwrap_or_else(|_| "/tmp/biblers.db".to_string());
 
     // Set up sentry
-    let _sentry = sentry::init(sentry::ClientOptions::default());
+    let sentry_dsn = env::var("SENTRY_DSN").ok();
+    info!(
+        "Sentry client initialized with DSN: '{}'",
+        sentry_dsn.clone().unwrap_or_default()
+    );
+    let _sentry = sentry::init((sentry_dsn, sentry::ClientOptions::default()));
 
     // Run DB migrations for a new SQLite database
     run_migrations(&mut establish_connection(&url)).expect("Error running migrations");
 
     let app_data = web::Data::new(ServerData {
-        // Create database connection pool
+        // Build Database connection pool
         db: build_pool(&url),
-        // Create handlebars registry
+        // Preload book data with a non-pooled connection
+        books: prefetch_books(&mut establish_connection(&url)).unwrap(),
+        // Build handlebars registry
         template: register_templates().unwrap(),
     });
 

@@ -12,28 +12,28 @@ jobs:
 
   lint_test:
     name: Lint and Test
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: recursive
 
       - name: Cache Cargo Registry
-        uses: actions/cache@v1
+        uses: actions/cache@v3
         with:
           path: ~/.cargo/registry
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Cache Cargo Index
-        uses: actions/cache@v1
+        uses: actions/cache@v3
         with:
           path: ~/.cargo/git
           key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Cache Cargo Build
-        uses: actions/cache@v1
+        uses: actions/cache@v3
         with:
           path: target
           key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
@@ -41,7 +41,7 @@ jobs:
       - name: Install SQLite Build and Binding Tools
         run: |
           sudo apt-get update
-          sudo apt-get install autoconf curl gcc make tcl clang-3.9 libclang-3.9-dev llvm-3.9-dev
+          sudo apt-get install autoconf curl gcc make tcl clang-14 libclang-14-dev llvm-14-dev
 
       - name: Build SQLite
         run: ./scripts/ci/install-sqlite.sh
