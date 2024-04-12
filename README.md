@@ -55,8 +55,14 @@ cookies or third-party analytic services involved in Bible.rs.
 [Github](https://github.com/DSpeckhals/bible.rs) and create a pull request.
 
 ## Docker
-- To run the Docker container for Bible.rs
+1. Pull the Git repository, including submodules
+
+    `git pull https://github.com/DSpeckhals/bible.rs.git`
+
+If you've already pulled the repo but not the migrations submodule, run `git submodule update --init --recursive`
+
+2. To run the Docker container for Bible.rs
 
     `docker build -t biblers . && docker run -p 8080:8080 --rm -it biblers`
 
-- Navigate to `localhost:8080`
+3. Navigate to `localhost:8080`
