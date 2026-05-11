@@ -6,7 +6,7 @@ use serde_derive::{Deserialize, Serialize};
 use db::models::{Book, Reference, Verse, VerseFTS};
 
 use crate::error::Error;
-use crate::responder::link::{verse_url, AllBooksLinks, BookLinks, Link, VersesLinks};
+use crate::responder::link::{AllBooksLinks, BookLinks, Link, VersesLinks, verse_url};
 use crate::responder::meta::Meta;
 
 /// Represents empty data.

@@ -4,10 +4,10 @@ use actix_web::{HttpRequest, HttpResponse};
 use db::models::Reference;
 use db::{SwordDrillable, VerseFormat};
 
+use crate::ServerData;
 use crate::controllers::SearchParams;
 use crate::error::{Error, JsonError};
 use crate::responder::{SearchResultData, VersesData};
-use crate::ServerData;
 
 /// Result for JSON API response handlers
 type ApiResult = Result<HttpResponse, JsonError>;

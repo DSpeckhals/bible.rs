@@ -4,14 +4,19 @@ use std::env;
 use std::error::Error;
 use std::io;
 
-use actix_web::{middleware, web, App, HttpResponse, HttpServer};
+use actix_files::NamedFile;
+use actix_web::dev::Service;
+use actix_web::http::header;
+use actix_web::middleware::DefaultHeaders;
+use actix_web::{App, HttpResponse, HttpServer, middleware, web};
 use dotenv::dotenv;
+use futures_util::future::{Either, FutureExt};
 use handlebars::Handlebars;
 use log::info;
 
 use db::{
-    build_pool, establish_connection, prefetch_books, run_migrations, SqliteConnectionPool,
-    SwordDrill,
+    SqliteConnectionPool, SwordDrill, build_pool, establish_connection, prefetch_books,
+    run_migrations,
 };
 
 use crate::controllers::{api, view};
@@ -27,29 +32,39 @@ pub struct ServerData {
 fn register_templates() -> Result<Handlebars<'static>, Box<dyn Error>> {
     let mut tpl = Handlebars::new();
     tpl.set_strict_mode(true);
-    tpl.register_templates_directory(".hbs", "./web/templates/")?;
+    let mut opts = handlebars::DirectorySourceOptions::default();
+    opts.tpl_extension = ".hbs".to_string();
+    tpl.register_templates_directory("./web/templates/", opts)?;
 
     Ok(tpl)
+}
+
+async fn robots_txt() -> std::io::Result<NamedFile> {
+    NamedFile::open("./web/dist/robots.txt")
+}
+
+async fn sitemap_xml() -> std::io::Result<NamedFile> {
+    NamedFile::open("./web/dist/sitemap.xml")
+}
+
+async fn service_worker() -> std::io::Result<HttpResponse> {
+    let bytes = std::fs::read("./web/dist/js/sw.js")?;
+    Ok(HttpResponse::Ok()
+        .insert_header(("Service-Worker-Allowed", "/"))
+        .insert_header((header::CONTENT_TYPE, "application/javascript"))
+        .body(bytes))
 }
 
 #[actix_web::main]
 async fn main() -> io::Result<()> {
     dotenv().ok();
 
-    // Set up logging
-    env::set_var("RUST_LOG", "info");
-    env_logger::init();
+    // Default log level is `info`; honors `RUST_LOG` if set.
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
     // Get env configuration
     let url = env::var("DATABASE_URL").unwrap_or_else(|_| "/tmp/biblers.db".to_string());
-
-    // Set up sentry
-    let sentry_dsn = env::var("SENTRY_DSN").ok();
-    info!(
-        "Sentry client initialized with DSN: '{}'",
-        sentry_dsn.clone().unwrap_or_default()
-    );
-    let _sentry = sentry::init((sentry_dsn, sentry::ClientOptions::default()));
+    info!("Database: {}", url);
 
     // Run DB migrations for a new SQLite database
     run_migrations(&mut establish_connection(&url)).expect("Error running migrations");
@@ -66,10 +81,68 @@ async fn main() -> io::Result<()> {
     HttpServer::new(move || {
         // Wire up the application
         App::new()
-            .wrap(sentry_actix::Sentry::new())
+            // Redirect www.bible.rs to the apex (Fly does the HTTP->HTTPS redirect)
+            .wrap_fn(|req, srv| {
+                let host_is_www = req
+                    .headers()
+                    .get(header::HOST)
+                    .and_then(|h| h.to_str().ok())
+                    .map(|h| {
+                        h.split(':')
+                            .next()
+                            .unwrap_or(h)
+                            .eq_ignore_ascii_case("www.bible.rs")
+                    })
+                    .unwrap_or(false);
+                if host_is_www {
+                    let path_and_query = req
+                        .uri()
+                        .path_and_query()
+                        .map(|pq| pq.as_str())
+                        .unwrap_or("/");
+                    let location = format!("https://bible.rs{}", path_and_query);
+                    let resp = req.into_response(
+                        HttpResponse::MovedPermanently()
+                            .insert_header((header::LOCATION, location))
+                            .finish(),
+                    );
+                    Either::Left(async move { Ok(resp) }.boxed_local())
+                } else {
+                    Either::Right(srv.call(req))
+                }
+            })
+            .wrap(
+                DefaultHeaders::new()
+                    .add((
+                        "Strict-Transport-Security",
+                        "max-age=63072000; includeSubDomains; preload",
+                    ))
+                    .add(("X-Content-Type-Options", "nosniff"))
+                    .add(("Referrer-Policy", "strict-origin-when-cross-origin"))
+                    .add((
+                        "Permissions-Policy",
+                        "geolocation=(), microphone=(), camera=()",
+                    ))
+                    .add((
+                        "Content-Security-Policy",
+                        "default-src 'self'; \
+                         script-src 'self' 'unsafe-inline'; \
+                         style-src 'self'; \
+                         img-src 'self' data:; \
+                         font-src 'self'; \
+                         object-src 'none'; \
+                         base-uri 'self'; \
+                         form-action 'self'; \
+                         frame-ancestors 'self'; \
+                         manifest-src 'self'",
+                    )),
+            )
             .wrap(middleware::Compress::default())
             .wrap(middleware::Logger::default())
             .app_data(app_data.clone())
+            // sw.js needs Service-Worker-Allowed: / so its scope can be the site root.
+            // Must be registered before the /static Files service.
+            .service(web::resource("/static/js/sw.js").route(web::get().to(service_worker)))
             .service(actix_files::Files::new("/static", "./web/dist").use_etag(true))
             .service(web::resource("about").to(view::about))
             .service(
@@ -78,6 +151,10 @@ async fn main() -> io::Result<()> {
                     .route(web::get().to(view::all_books::<SwordDrill>)),
             )
             .service(web::resource("search").route(web::get().to(view::search::<SwordDrill>)))
+            // robots.txt and sitemap.xml must be registered before the {book} catch-all,
+            // which would otherwise match them as a book name.
+            .service(web::resource("/robots.txt").route(web::get().to(robots_txt)))
+            .service(web::resource("/sitemap.xml").route(web::get().to(sitemap_xml)))
             .service(
                 web::resource("{book}")
                     .name("book")

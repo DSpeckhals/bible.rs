@@ -3,7 +3,7 @@ use serde_derive::{Deserialize, Serialize};
 
 use db::models::{Book, Reference};
 
-use crate::responder::link::{AllBooksLinks, BookLinks, Link, VersesLinks, NAME};
+use crate::responder::link::{AllBooksLinks, BookLinks, Link, NAME, VersesLinks};
 
 const CONTEXT: &str = "https://schema.org";
 const CREATOR_FIRST_NAME: &str = "Dustin";

@@ -1,7 +1,6 @@
-use diesel::backend;
+use diesel::backend::Backend;
 use diesel::deserialize::{self, FromSql, FromSqlRow, Queryable};
 use diesel::sql_types::Text;
-use diesel::sqlite::Sqlite;
 use serde_derive::{Deserialize, Serialize};
 
 /// Model representing a Bible verse.
@@ -22,11 +21,13 @@ pub enum Testament {
     New,
 }
 
-impl FromSql<Text, Sqlite> for Testament {
-    fn from_sql(bytes: backend::RawValue<'_, Sqlite>) -> deserialize::Result<Self> {
-        let testament =
-            <String as FromSql<Text, Sqlite>>::from_sql(bytes).expect("Unexpected null testament");
-        match testament.as_ref() {
+impl<DB> FromSql<Text, DB> for Testament
+where
+    DB: Backend,
+    String: FromSql<Text, DB>,
+{
+    fn from_sql(bytes: DB::RawValue<'_>) -> deserialize::Result<Self> {
+        match String::from_sql(bytes)?.as_str() {
             "OLD" => Ok(Testament::Old),
             "NEW" => Ok(Testament::New),
             _ => Err("Unexpected testament in the Bible".into()),

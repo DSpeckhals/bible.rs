@@ -1,7 +1,7 @@
 use std::ops::RangeInclusive;
 
-use actix_web::error::UrlGenerationError;
 use actix_web::HttpRequest;
+use actix_web::error::UrlGenerationError;
 use log::error;
 use serde_derive::{Deserialize, Serialize};
 use url::Url;

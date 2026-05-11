@@ -6,7 +6,7 @@ use std::io::{self, Write};
 use dotenv::dotenv;
 
 use db::models::Reference;
-use db::{establish_connection, SwordDrill, SwordDrillable, VerseFormat};
+use db::{SwordDrill, SwordDrillable, VerseFormat, establish_connection};
 
 #[derive(Parser, Debug)]
 #[clap(

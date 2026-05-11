@@ -4,10 +4,10 @@ use actix_web::{HttpRequest, HttpResponse};
 use db::models::Reference;
 use db::{SwordDrillable, VerseFormat};
 
+use crate::ServerData;
 use crate::controllers::SearchParams;
 use crate::error::{Error, HtmlError};
 use crate::responder::*;
-use crate::ServerData;
 
 /// Result for HTML response handlers
 type ViewResult = Result<HttpResponse, HtmlError>;
