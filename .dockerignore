@@ -31,6 +31,3 @@ scripts/
 # Local env
 .env
 .env.*
-
-# Generated CSS — rebuilt in the image
-web/dist/css/style.css

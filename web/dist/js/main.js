@@ -1,104 +1,109 @@
-// Search box
+// Publish the header's measured height as --header-h so the search
+// dropdown (which uses position: fixed to break out of the input box)
+// can anchor itself just below the sticky header at any viewport size.
 (function () {
-    function getResults(q, cb) {
-        if (!q) {
-            cb([]);
-            return;
-        }
+    var header = document.querySelector(".site-header");
+    if (!header) return;
+    var publish = function () {
+        document.documentElement.style.setProperty(
+            "--header-h", header.offsetHeight + "px"
+        );
+    };
+    publish();
+    if (typeof ResizeObserver === "function") {
+        new ResizeObserver(publish).observe(header);
+    } else {
+        window.addEventListener("resize", publish);
+    }
+})();
 
-        fetch("/api/search?q=" + encodeURIComponent(q)).then(function (resp) {
-            return resp.json();
-        }).then(function (data) {
-            cb(data.matches);
-        });
+// Search box with Algolia autocomplete.
+// The form posts natively to /search?q=... when no suggestion is chosen,
+// so the page works fully with JavaScript disabled.
+(function () {
+    var input = document.getElementById("q");
+    if (!input) return;
+
+    function getResults(q, cb) {
+        if (!q) { cb([]); return; }
+        fetch("/api/search?q=" + encodeURIComponent(q))
+            .then(function (r) { return r.json(); })
+            .then(function (data) { cb(data.matches || []); })
+            .catch(function () { cb([]); });
     }
 
-    autocomplete("#q", { autoselect: true, debounce: 350, hint: false }, [
-        {
+    if (typeof autocomplete === "function") {
+        autocomplete(input, { autoselect: true, debounce: 350, hint: false }, [{
             source: getResults,
             templates: {
                 suggestion: function (result) {
                     return "<p><i>" + result.link.label + "</i> | " + result.text + "</p>";
                 }
             }
-        }
-    ]).on("autocomplete:selected", function (e, suggestion) {
-        document.location.href = suggestion.link.url;
-    });
-    document.getElementById("q").setAttribute("aria-label", "Search the Bible");
-
-    document.onkeypress = function (e) {
-        if (e.ctrlKey || e.altKey || e.metaKey) {
-            return;
-        }
-        var key = String.fromCharCode(e.charCode || e.keyCode);
-        if (document.activeElement.tagName !== "INPUT" && key.toLowerCase() === "s") {
-            e.preventDefault();
-            document.getElementById("q").focus();
-        }
-    };
-
-    document.getElementById("search-form").onsubmit = function(e) {
-        e.preventDefault();
-        return false;
-    };
-})();
-
-// Swipe navigation
-(function () {
-    function detectSwipe(el, callback) {
-        var touchSurface = el;
-        var swipeDir;
-        var startX;
-        var startY;
-        var distX;
-        var distY;
-        var threshold = 100;
-        var allowedTime = 300;
-        var elapsedTime;
-        var startTime;
-        var handleSwipe = callback || function () {};
-
-        touchSurface.addEventListener("touchstart", function (e) {
-            var touchObj = e.changedTouches[0];
-            swipeDir = "none";
-            distX = 0;
-            distY = 0;
-            startX = touchObj.pageX;
-            startY = touchObj.pageY;
-            startTime = new Date().getTime();
-        }, false);
-
-        touchSurface.addEventListener("touchend", function (e) {
-            var touchObj = e.changedTouches[0];
-            distX = touchObj.pageX - startX;
-            distY = touchObj.pageY - startY;
-            elapsedTime = new Date().getTime() - startTime;
-
-            if (elapsedTime <= allowedTime
-                && Math.abs(distX) > Math.abs(distY)
-                && Math.abs(distX) >= threshold) {
-                    handleSwipe((distX < 0) ? "left" : "right");
-            }
-
-        }, false);
-    }
-
-    var el = document.getElementsByTagName("main")[0];
-    var prevEl = document.getElementById("link-prev");
-    var nextEl = document.getElementById("link-next");
-    if (prevEl || nextEl) {
-        detectSwipe(el, function (swipeDir) {
-            if (swipeDir == "right" && prevEl) {
-                window.location.href = prevEl.getAttribute("href");
-            } else if (swipeDir == "left" && nextEl) {
-                window.location.href = nextEl.getAttribute("href");
-            }
+        }]).on("autocomplete:selected", function (_e, suggestion) {
+            window.location.assign(suggestion.link.url);
         });
     }
+
+    // Keyboard shortcut: press "s" anywhere to focus the search box.
+    document.addEventListener("keydown", function (e) {
+        if (e.ctrlKey || e.altKey || e.metaKey) return;
+        if (document.activeElement && document.activeElement.tagName === "INPUT") return;
+        if (e.key && e.key.toLowerCase() === "s") {
+            e.preventDefault();
+            input.focus();
+        }
+    });
 })();
 
-// Service worker registration
-if (navigator.serviceWorker) {
-    navigator.serviceWorker.register("/static/js/sw.js", { scope: "/" });
+// Theme toggle: cycles auto → light → dark, persists in localStorage,
+// updates aria state and the visible label. The FOUC-prevention bootstrap
+// already ran inline in <head>; this module only handles user interaction.
+(function () {
+    var btn = document.getElementById("theme-toggle");
+    if (!btn) return;
+    var icon = btn.querySelector(".theme-toggle__icon");
+    var label = btn.querySelector(".theme-toggle__label");
+
+    var ICONS = { auto: "☼", light: "☀", dark: "☾" };
+    var LABELS = { auto: "Auto", light: "Light", dark: "Dark" };
+    var ORDER = ["auto", "light", "dark"];
+
+    function read() {
+        try {
+            var v = localStorage.getItem("theme");
+            return (v === "light" || v === "dark") ? v : "auto";
+        } catch (e) { return "auto"; }
+    }
+
+    function apply(state) {
+        if (state === "auto") {
+            document.documentElement.removeAttribute("data-theme");
+        } else {
+            document.documentElement.setAttribute("data-theme", state);
+        }
+        try {
+            if (state === "auto") localStorage.removeItem("theme");
+            else localStorage.setItem("theme", state);
+        } catch (e) { /* ignore */ }
+        if (icon) icon.textContent = ICONS[state];
+        if (label) label.textContent = LABELS[state];
+        btn.setAttribute("aria-pressed", state === "dark" ? "true" : "false");
+        btn.setAttribute("aria-label", "Theme: " + LABELS[state] + ". Click to change.");
+    }
+
+    apply(read());
+
+    btn.addEventListener("click", function () {
+        var cur = read();
+        var next = ORDER[(ORDER.indexOf(cur) + 1) % ORDER.length];
+        apply(next);
+    });
+})();
+
+// Service worker registration.
+if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+        navigator.serviceWorker.register("/static/js/sw.js", { scope: "/" });
+    });
 }

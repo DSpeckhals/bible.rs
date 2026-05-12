@@ -4,10 +4,11 @@
     "lang": "en-US",
     "start_url": "/",
     "display": "standalone",
-    "background_color": "#ffffff",
-    "theme_color": "#444444",
-    "description": "Browse and search the King James version of the Bible using a lightning-fast and slick interface.",
+    "background_color": "#fbf7f0",
+    "theme_color": "#fbf7f0",
+    "description": "Browse and search the King James version of the Bible using a lightning-fast, ad-free, offline-capable reader.",
     "orientation": "portrait-primary",
+    "categories": ["books", "education", "reference"],
     "icons": [
         {
             "src": "./img/bible.rs-32x32.png",
@@ -27,7 +28,14 @@
         {
             "src": "./img/bible.rs-512x512.png",
             "sizes": "512x512",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "./img/bible.rs-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
         }
     ]
 }

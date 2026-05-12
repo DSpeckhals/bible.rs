@@ -1,0 +1,44 @@
+/* Single book view: numbered chapter grid. */
+
+@layer pages {
+
+.book {
+    container-type: inline-size;
+
+    .chapter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(3.5rem, 1fr));
+        gap: 0.5rem;
+        margin-block: var(--gap-lg) var(--gap);
+    }
+
+    .chapter-grid__item > a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        block-size: 3.5rem;
+        border-radius: var(--radius);
+        border: 1px solid var(--ink-faint);
+        color: var(--ink);
+        font-family: var(--font-ui);
+        font-variant-numeric: oldstyle-nums;
+        font-size: 1.125rem;
+        font-weight: 500;
+        transition: background var(--duration-fast) var(--ease-out),
+                    border-color var(--duration-fast) var(--ease-out),
+                    color var(--duration-fast) var(--ease-out),
+                    transform var(--duration-fast) var(--ease-out);
+
+        &:hover {
+            background: var(--accent-soft);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        &:active {
+            transform: scale(0.95);
+        }
+    }
+}
+
+}

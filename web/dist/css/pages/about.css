@@ -1,0 +1,51 @@
+@layer pages {
+
+.about {
+    color: var(--ink);
+    line-height: var(--line-height-body);
+
+    h1 {
+        margin-block: var(--gap-lg) var(--gap);
+        text-align: center;
+    }
+
+    h2 {
+        margin-block: var(--gap-lg) var(--gap);
+        color: var(--ink);
+    }
+
+    p {
+        margin-block: var(--gap);
+        text-wrap: pretty;
+    }
+
+    ul {
+        margin-block: var(--gap);
+        padding-inline-start: 1.5rem;
+        list-style: disc;
+
+        li {
+            margin-block: 0.25rem;
+        }
+
+        li::marker {
+            color: var(--accent);
+        }
+    }
+
+    a {
+        color: var(--accent);
+        border-block-end: 1px solid color-mix(in oklab, var(--accent) 40%, transparent);
+        transition: border-color var(--duration-fast) var(--ease-out);
+
+        &:hover {
+            border-block-end-color: currentColor;
+        }
+    }
+
+    em {
+        font-style: italic;
+    }
+}
+
+}

@@ -106,7 +106,6 @@ impl VersesLinks {
     ) -> Self {
         let bible_root = Link::new(&req.url_for_static("bible").unwrap(), NAME.to_string());
         let book_index = book.id as usize - 1;
-        println!("{}", book_index);
         let book_link = Link::new(
             &req.url_for("book", [&book.name]).unwrap(),
             book.name.to_string(),

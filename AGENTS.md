@@ -60,7 +60,7 @@ Two more ordering constraints exist in the same chain:
 
 ## Frontend assets
 
-CSS is compiled from `web/styles/*.scss` to `web/dist/css/style.css` with `sassc` (the Dockerfile runs this; there is no Cargo build step for it). Static assets in `web/dist/` are served at `/static`.
+CSS lives directly in `web/dist/css/` as vanilla CSS — **no build step**. Each file is wrapped in its own `@layer` block, and `layers.css` declares the cascade order (`reset, tokens, base, components, pages`) and must load first; `web/templates/base.hbs` enumerates every stylesheet as a separate `<link>` so HTTP/2/3 multiplexing fetches them in parallel. Static assets in `web/dist/` are served at `/static`.
 
 ## Deploy
 

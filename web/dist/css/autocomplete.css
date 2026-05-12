@@ -1,0 +1,105 @@
+/* Search form + Algolia autocomplete dropdown. */
+
+@layer components {
+
+.search-form {
+    position: relative;
+    display: flex;
+    inline-size: 100%;
+    max-inline-size: 26rem;
+    margin-inline: auto;
+}
+
+.algolia-autocomplete {
+    inline-size: 100%;
+}
+
+#q {
+    inline-size: 100%;
+    block-size: 2.75rem;
+    padding-inline: 1rem 2.5rem;
+    border-radius: 999px;
+    border: 1px solid var(--ink-faint);
+    background: var(--paper-elevated);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    font-size: 1rem;
+    transition: border-color var(--duration-fast) var(--ease-out),
+                box-shadow var(--duration-fast) var(--ease-out),
+                background var(--duration-fast) var(--ease-out);
+
+    &::placeholder {
+        color: var(--ink-muted);
+        opacity: 0.7;
+    }
+
+    &:hover {
+        border-color: var(--ink-muted);
+    }
+
+    &:focus-visible {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-soft);
+        background: var(--paper);
+    }
+}
+
+.algolia-autocomplete {
+    /* Break the dropdown out of the input's wrapper so it can be wider
+       than the input on narrow viewports. Anchored below the header
+       (--header-h is set by main.js via ResizeObserver) and clamped
+       between viewport edges, with margin: auto to center the box. */
+    .aa-dropdown-menu {
+        position: fixed !important;
+        inset-block-start: calc(var(--header-h, 4.5rem) + 0.5rem) !important;
+        inset-inline-start: max(0.5rem, env(safe-area-inset-left, 0px)) !important;
+        inset-inline-end: max(0.5rem, env(safe-area-inset-right, 0px)) !important;
+        inline-size: auto !important;
+        max-inline-size: 32rem;
+        margin-inline: auto !important;
+        padding: 0.25rem;
+        background: var(--paper-elevated);
+        border: 1px solid var(--ink-faint);
+        border-radius: var(--radius);
+        box-shadow: 0 10px 30px oklch(0% 0 0 / 18%);
+        font-family: var(--font-ui);
+        max-block-size: min(70dvh, 28rem);
+        overflow-y: auto;
+
+        .aa-suggestion {
+            cursor: pointer;
+            padding: 0.6rem 0.75rem;
+            border-radius: var(--radius-sm);
+            color: var(--ink);
+            font-size: 0.95rem;
+            line-height: 1.4;
+
+            p {
+                margin: 0;
+            }
+
+            i {
+                font-style: normal;
+                font-weight: 600;
+                color: var(--accent);
+                margin-inline-end: 0.5rem;
+            }
+
+            em {
+                font-style: normal;
+                font-weight: 700;
+                color: var(--ink);
+                background: var(--selection);
+                padding: 0 0.15em;
+                border-radius: 2px;
+            }
+
+            &.aa-cursor {
+                background: var(--accent-soft);
+            }
+        }
+    }
+}
+
+}

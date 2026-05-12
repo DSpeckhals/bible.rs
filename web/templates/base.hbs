@@ -3,22 +3,45 @@
 
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="color-scheme" content="light dark">
+
     <title>{{meta.title}}</title>
+    <meta name="description" content="{{meta.description}}">
     <link rel="canonical" href="{{meta.url}}">
     {{~ #if data.links.previous}}
-    <link rel="prev" href="{{data.links.previous.url}}" id="link-prev">
+    <link rel="prev" href="{{data.links.previous.url}}">
     {{~ /if}}
     {{~ #if data.links.next}}
-    <link rel="next" href="{{data.links.next.url}}" id="link-next">
+    <link rel="next" href="{{data.links.next.url}}">
+    <link rel="prefetch" href="{{data.links.next.url}}">
     {{~ /if}}
-    <link rel="shortcut icon" href="/static/img/bible.rs-32x32.png" type="image/png">
-    <link rel="stylesheet" href="/static/css/style.css" media="all">
-    <link rel="manifest" href="/static/manifest.json">
 
-    <meta name="theme-color" content="#444444">
-    <meta name="description" content="Browse and search the King James version of the Bible using a lightning-fast and slick interface.">
+    <link rel="preload" as="font" type="font/woff2" href="/static/fonts/literata-latin.woff2" crossorigin>
+    {{!-- layers.css MUST be first: it declares the cascade-layer order
+         (@layer reset, tokens, base, components, pages;) that the other
+         sheets' @layer blocks merge into. Reorder at your peril. --}}
+    <link rel="stylesheet" href="/static/css/layers.css">
+    <link rel="stylesheet" href="/static/css/variables.css">
+    <link rel="stylesheet" href="/static/css/reset.css">
+    <link rel="stylesheet" href="/static/css/global.css">
+    <link rel="stylesheet" href="/static/css/autocomplete.css">
+    <link rel="stylesheet" href="/static/css/pages/about.css">
+    <link rel="stylesheet" href="/static/css/pages/bible.css">
+    <link rel="stylesheet" href="/static/css/pages/book.css">
+    <link rel="stylesheet" href="/static/css/pages/chapter.css">
+    <link rel="stylesheet" href="/static/css/pages/error.css">
+    <link rel="stylesheet" href="/static/css/pages/search-results.css">
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="shortcut icon" href="/static/img/bible.rs-32x32.png" type="image/png">
+    <link rel="apple-touch-icon" href="/static/img/bible.rs-512x512.png">
+
+    <meta name="theme-color" content="#fbf7f0" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#1c1d20" media="(prefers-color-scheme: dark)">
+    <meta name="apple-mobile-web-app-title" content="Bible.rs">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
     <meta property="og:site_name" content="Bible.rs">
     <meta property="og:image" content="https://bible.rs/static/img/bible.rs-512x512.png">
@@ -28,11 +51,22 @@
     <meta property="og:title" content="{{meta.title}}">
     <meta property="og:url" content="{{meta.url}}">
     <meta property="og:description" content="{{meta.description}}">
+    <meta name="twitter:card" content="summary">
 
-    <link rel="apple-touch-icon" href="/static/img/bible.rs-512x512.png">
-    <meta name="apple-mobile-web-app-title" content="Bible.rs">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="#444444">
+    <script>
+        // Theme bootstrap: must run before first paint to prevent FOUC.
+        // Reads localStorage and sets <html data-theme="..."> so CSS
+        // [data-theme] selectors apply on the very first frame.
+        (function () {
+            try {
+                var t = localStorage.getItem("theme");
+                if (t === "light" || t === "dark") {
+                    document.documentElement.setAttribute("data-theme", t);
+                }
+            } catch (e) { /* localStorage may be blocked; fall back to OS theme */ }
+        })();
+    </script>
+
     {{~ #each meta.json_ld as |json_ld|}}
     <script type="application/ld+json">
     {{{json_ld}}}
@@ -41,20 +75,31 @@
 </head>
 
 <body>
-    <header>
-        <form id="search-form" action="/search">
-            <input type="search" id="q" name="q" autocomplete="off" placeholder="Click or press 'S' to search..." aria-label="Search the Bible">
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header">
+        <a href="/" class="site-logo" aria-label="Bible.rs home">
+            <img src="/static/img/bible.rs.svg" alt="" width="64" height="64">
+        </a>
+        <form class="search-form" id="search-form" action="/search" method="get" role="search">
+            <input type="search" id="q" name="q" autocomplete="off" placeholder="Search the Bible — press 'S'" aria-label="Search the Bible">
         </form>
+        <button type="button" class="theme-toggle" id="theme-toggle" aria-pressed="false" aria-label="Switch theme">
+            <span class="theme-toggle__icon" aria-hidden="true">☼</span>
+            <span class="theme-toggle__label">Auto</span>
+        </button>
     </header>
-    <main>
+
+    <main id="main" class="page-wrap">
     {{~> page data}}
     </main>
-    <footer>
-        <a href="/about" class="about-link" title="About">
-            <img src="/static/img/info.svg" alt="info">
-            About Bible.rs
-        </a>
+
+    <footer class="site-footer">
+        <a href="/about" rel="author">About Bible.rs</a>
+        <span aria-hidden="true">·</span>
+        <a href="https://github.com/DSpeckhals/bible.rs" rel="external noopener">Source</a>
     </footer>
+
     <script src="/static/js/autocomplete.min.js"></script>
     <script src="/static/js/main.js"></script>
 </body>

@@ -1,11 +1,8 @@
 {{~ #*inline "page"}}
-<div class="container error">
-    <nav class="top-nav">
-        <a href="{{links.books.url}}">
-            <img src="/static/img/bible.rs.svg" alt="BIBLE.RS" height="100" width="100" class="logo">
-        </a>
-    </nav>
-    <p class="message">{{message}}</p>
-</div>
-{{/inline}}
-{{~> base}}
+<section class="page error">
+    <p class="error__title" aria-hidden="true">404</p>
+    <p class="error__message">{{message}}</p>
+    <a class="error__home" href="/">Back to the Bible</a>
+</section>
+{{~ /inline}}
+{{~> base ~}}

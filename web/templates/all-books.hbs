@@ -1,17 +1,18 @@
 {{~ #*inline "page"}}
-<div class="container all-books">
-    <nav class="top-nav">
-        <img src="/static/img/bible.rs.svg" alt="BIBLE.RS" height="100" width="100" class="logo">
-    </nav>
-    <nav>
-        <ol>
+<section class="page page--wide all-books">
+    <header class="all-books__hero">
+        <h1>The Holy Bible</h1>
+        <p>King James Version</p>
+    </header>
+    <nav aria-label="All books">
+        <ol class="book-grid">
             {{~ #each links.books as |book|}}
-            <li>
+            <li class="book-grid__item">
                 <a href="{{url}}">{{label}}</a>
             </li>
             {{~ /each}}
         </ol>
     </nav>
-</div>
+</section>
 {{~ /inline}}
 {{~> base ~}}

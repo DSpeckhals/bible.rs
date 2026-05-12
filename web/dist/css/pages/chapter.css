@@ -1,0 +1,214 @@
+/* Chapter view: verses laid out as an ordered list with the verse number
+   living in a left gutter — like a real printed Bible. Each verse is a
+   CSS grid row so numbers stay vertically aligned regardless of wrap. */
+
+@layer pages {
+
+.chapter {
+    container-type: inline-size;
+}
+
+.verses {
+    margin-block: var(--gap-lg) var(--gap);
+    counter-reset: verse;
+
+    --verse-gutter: 1.75rem;
+    --verse-gap: 0.5rem;
+
+    > li {
+        display: grid;
+        grid-template-columns: var(--verse-gutter) 1fr;
+        column-gap: var(--verse-gap);
+        align-items: baseline;
+        padding-block: 0.35rem;
+        font-size: var(--font-size-verse);
+        line-height: var(--line-height-body);
+        color: var(--ink);
+        scroll-margin-block-start: 6rem;
+        transition: background var(--duration-base) var(--ease-out);
+
+        &:target {
+            background: var(--selection);
+            border-radius: var(--radius-sm);
+            padding-inline: 0.5rem;
+            margin-inline: -0.5rem;
+            box-shadow: 0 0 0 4px var(--selection);
+        }
+    }
+
+    /* On wide viewports there's plenty of left margin outside the page's
+       max-inline-size column, so hang the verse numbers in it — verse
+       text then aligns with the chapter h1 above. Bible printers do this. */
+    @media (min-inline-size: 48rem) {
+        margin-inline-start: calc(-1 * (var(--verse-gutter) + var(--verse-gap)));
+    }
+
+    /* First verse gets a two-line printer's drop cap — restrained,
+       ink-colored, lets the chapter heading stay the loudest element. */
+    > li:first-child .verse-text::first-letter {
+        font-weight: 700;
+        font-size: 2.2em;
+        line-height: 0.85;
+        float: inline-start;
+        padding-inline-end: 0.35rem;
+        padding-block-start: 0.1rem;
+        color: var(--ink);
+        font-family: var(--font-body);
+    }
+
+    @supports (initial-letter: 2) {
+        > li:first-child .verse-text::first-letter {
+            float: none;
+            font-size: inherit;
+            line-height: inherit;
+            padding: 0;
+            initial-letter: 2;
+            -webkit-initial-letter: 2;
+            margin-inline-end: 0.4rem;
+            color: var(--ink);
+        }
+    }
+
+    .verse-num {
+        font-family: var(--font-ui);
+        font-size: 0.8125rem;
+        font-weight: 500;
+        font-variant-numeric: oldstyle-nums tabular-nums;
+        letter-spacing: 0.03em;
+        text-align: end;
+        color: var(--ink-muted);
+        align-self: start;
+        padding-block-start: 0.55em;
+        transition: color var(--duration-fast) var(--ease-out);
+
+        &:hover {
+            color: var(--accent);
+        }
+    }
+
+    .verse-text {
+        em {
+            font-style: italic;
+            color: color-mix(in oklab, var(--ink) 80%, var(--paper));
+        }
+    }
+}
+
+/* Tools below the chapter (full chapter, book index, prev/next).
+   Narrow viewports break to a 2-row layout: prev/next side-by-side on
+   row 1, the book/full-chapter link on row 2 below. */
+.chapter-tools {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: var(--gap);
+    margin-block-start: var(--gap-lg);
+    padding-block-start: var(--gap);
+    border-block-start: 1px solid var(--ink-faint);
+    font-family: var(--font-ui);
+    font-size: 0.9375rem;
+
+    @media (max-width: 32rem) {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+
+        .chapter-tools__side--prev { grid-row: 1; grid-column: 1; }
+        .chapter-tools__side--next { grid-row: 1; grid-column: 2; }
+        .chapter-tools__center { grid-row: 2; grid-column: 1 / -1; }
+    }
+
+    .chapter-tools__center {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: center;
+    }
+
+    .chapter-tools__link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.5rem 0.85rem;
+        border-radius: 999px;
+        color: var(--ink-muted);
+        background: transparent;
+        border: 1px solid var(--ink-faint);
+        white-space: nowrap;
+        transition: color var(--duration-fast) var(--ease-out),
+                    border-color var(--duration-fast) var(--ease-out),
+                    background var(--duration-fast) var(--ease-out);
+
+        &::before {
+            content: "";
+            display: block;
+            block-size: 1rem;
+            inline-size: 1rem;
+            background: currentColor;
+            mask-size: contain;
+            mask-repeat: no-repeat;
+            mask-position: center;
+        }
+
+        &:hover {
+            color: var(--accent);
+            border-color: var(--accent);
+            background: var(--accent-soft);
+        }
+    }
+
+    .chapter-tools__side {
+        display: flex;
+    }
+}
+
+/* BEM-modifier rules — un-nested because native CSS nesting does NOT support
+   &--suffix string concatenation. */
+.chapter-tools__link--full::before {
+    mask-image: url("/static/img/unfold-more.svg");
+    -webkit-mask-image: url("/static/img/unfold-more.svg");
+}
+
+.chapter-tools__link--book::before {
+    mask-image: url("/static/img/book.svg");
+    -webkit-mask-image: url("/static/img/book.svg");
+}
+
+/* Prev/next chapter links: arrows via rel attribute. Next flips its flex
+   direction so the arrow sits AFTER the label ("Exodus 7 →") rather than
+   before it. */
+.chapter-tools__link[rel="prev"]::before {
+    mask-image: url("/static/img/arrow-back.svg");
+    -webkit-mask-image: url("/static/img/arrow-back.svg");
+}
+
+.chapter-tools__link[rel="next"] {
+    flex-direction: row-reverse;
+}
+
+.chapter-tools__link[rel="next"]::before {
+    mask-image: url("/static/img/arrow-forward.svg");
+    -webkit-mask-image: url("/static/img/arrow-forward.svg");
+}
+
+.chapter-tools__side--prev {
+    justify-content: flex-start;
+}
+
+.chapter-tools__side--next {
+    justify-content: flex-end;
+}
+
+@media print {
+    .verses > li {
+        page-break-inside: avoid;
+    }
+
+    .verses > li:first-child .verse-text::first-letter {
+        color: black;
+        initial-letter: unset;
+        font-size: 1em;
+        float: none;
+    }
+}
+
+}

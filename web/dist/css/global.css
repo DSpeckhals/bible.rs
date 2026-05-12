@@ -1,0 +1,310 @@
+/* Self-hosted Literata variable: roman + italic, latin subset.
+   Wght axis spans 200–900 in a single file; italic ships as a separate
+   face so it loads on demand the first time <em> renders. */
+
+@font-face {
+    font-family: "Literata";
+    font-style: normal;
+    font-weight: 200 900;
+    font-display: swap;
+    src: url("/static/fonts/literata-latin.woff2") format("woff2-variations"),
+         url("/static/fonts/literata-latin.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+2122, U+2212;
+}
+
+@font-face {
+    font-family: "Literata";
+    font-style: italic;
+    font-weight: 200 900;
+    font-display: swap;
+    src: url("/static/fonts/literata-latin-italic.woff2") format("woff2-variations"),
+         url("/static/fonts/literata-latin-italic.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+2122, U+2212;
+}
+
+@layer base {
+
+html {
+    font-family: var(--font-body);
+    font-size: var(--font-size-body);
+    color: var(--ink);
+    background-color: var(--paper);
+    accent-color: var(--accent);
+}
+
+body {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    min-block-size: 100dvh;
+}
+
+/* Page chrome typography uses the UI stack. */
+.site-header,
+.site-footer,
+.search-form,
+.theme-toggle,
+.page-nav {
+    font-family: var(--font-ui);
+}
+
+h1,
+h2,
+h3 {
+    color: var(--ink);
+    font-weight: 600;
+    line-height: var(--line-height-tight);
+    text-wrap: balance;
+}
+
+h1 {
+    font-size: var(--font-size-h1);
+    letter-spacing: -0.01em;
+}
+
+h2 {
+    font-size: var(--font-size-h2);
+}
+
+p {
+    text-wrap: pretty;
+}
+
+em {
+    font-style: italic;
+}
+
+/* Reading column shared across page templates. */
+.page {
+    inline-size: 100%;
+    max-inline-size: var(--measure);
+    margin-inline: auto;
+    padding-inline: var(--gap);
+    padding-block: var(--gap-lg);
+}
+
+.page--wide {
+    max-inline-size: var(--measure-wide);
+}
+
+/* Skip link for keyboard users. */
+.skip-link {
+    position: absolute;
+    inset-inline-start: var(--gap);
+    inset-block-start: var(--gap);
+    padding: 0.5rem 0.75rem;
+    background: var(--paper-elevated);
+    color: var(--ink);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 4px 12px oklch(0% 0 0 / 15%);
+    transform: translateY(-200%);
+    transition: transform var(--duration-base) var(--ease-out);
+    z-index: 100;
+
+    &:focus {
+        transform: translateY(0);
+    }
+}
+
+/* Site header: small logo + search + theme toggle. */
+.site-header {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: var(--gap);
+    padding: var(--gap) clamp(var(--gap), 4vw, 2rem);
+    border-block-end: 1px solid var(--ink-faint);
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 10;
+    backdrop-filter: saturate(140%) blur(8px);
+    background: color-mix(in oklab, var(--paper) 88%, transparent);
+}
+
+.site-logo {
+    display: inline-flex;
+    align-items: center;
+
+    img {
+        block-size: 2rem;
+        inline-size: auto;
+    }
+
+    &:hover img {
+        filter: drop-shadow(0 0 8px var(--accent-soft));
+    }
+}
+
+.site-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: var(--gap);
+    padding: var(--gap-lg) var(--gap);
+    color: var(--ink-muted);
+    font-size: 0.9375rem;
+    border-block-start: 1px solid var(--ink-faint);
+
+    a {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: var(--ink-muted);
+        border-block-end: 1px solid transparent;
+        transition: color var(--duration-fast) var(--ease-out),
+                    border-color var(--duration-fast) var(--ease-out);
+
+        &:hover {
+            color: var(--accent);
+            border-block-end-color: currentColor;
+        }
+
+        svg,
+        img {
+            block-size: 1rem;
+            inline-size: 1rem;
+        }
+    }
+}
+
+/* Page navigation (prev/next around chapter heading). */
+.page-nav {
+    display: grid;
+    grid-template-columns: 3rem 1fr 3rem;
+    align-items: center;
+    gap: var(--gap);
+    margin-block: var(--gap-lg);
+
+    h1 {
+        margin: 0;
+        text-align: center;
+        font-variant-numeric: oldstyle-nums;
+    }
+
+    .nav-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        block-size: 2.75rem;
+        inline-size: 2.75rem;
+        border-radius: 999px;
+        color: var(--ink-muted);
+        background: transparent;
+        transition: background var(--duration-fast) var(--ease-out),
+                    color var(--duration-fast) var(--ease-out),
+                    transform var(--duration-fast) var(--ease-out);
+
+        &:hover {
+            background: var(--accent-soft);
+            color: var(--accent);
+        }
+
+        &:active {
+            transform: scale(0.94);
+        }
+
+        /* Use an inline mask so the SVG color follows currentColor in both themes. */
+        &::before {
+            content: "";
+            display: block;
+            block-size: 1.25rem;
+            inline-size: 1.25rem;
+            background: currentColor;
+            mask-size: contain;
+            mask-repeat: no-repeat;
+            mask-position: center;
+        }
+    }
+
+    .nav-spacer {
+        block-size: 2.75rem;
+    }
+}
+
+/* BEM-modifier mask-image rules. Kept un-nested because native CSS nesting
+   does NOT support &--suffix string concatenation the way Sass did. */
+.nav-link--prev::before {
+    mask-image: url("/static/img/arrow-back.svg");
+    -webkit-mask-image: url("/static/img/arrow-back.svg");
+}
+
+.nav-link--next::before {
+    mask-image: url("/static/img/arrow-forward.svg");
+    -webkit-mask-image: url("/static/img/arrow-forward.svg");
+}
+
+/* Theme toggle button. */
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    block-size: 2.5rem;
+    padding-inline: 0.85rem;
+    border-radius: 999px;
+    color: var(--ink-muted);
+    background: transparent;
+    border: 1px solid var(--ink-faint);
+    font-size: 0.875rem;
+    transition: background var(--duration-fast) var(--ease-out),
+                color var(--duration-fast) var(--ease-out),
+                border-color var(--duration-fast) var(--ease-out);
+
+    &:hover {
+        color: var(--accent);
+        border-color: var(--accent);
+    }
+
+    .theme-toggle__icon {
+        display: inline-block;
+        font-size: 1rem;
+        line-height: 1;
+    }
+
+    .theme-toggle__label {
+        font-variant-caps: all-small-caps;
+        letter-spacing: 0.04em;
+    }
+}
+
+/* Cross-document view transitions for chapter navigation. */
+@supports (view-transition-name: foo) {
+    @view-transition {
+        navigation: auto;
+    }
+
+    .verses {
+        view-transition-name: chapter-body;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        ::view-transition-group(*),
+        ::view-transition-old(*),
+        ::view-transition-new(*) {
+            animation: none !important;
+        }
+    }
+}
+
+@media print {
+    .site-header,
+    .site-footer,
+    .page-nav .nav-link,
+    .skip-link,
+    .search-form,
+    .theme-toggle,
+    .chapter-tools {
+        display: none !important;
+    }
+
+    .page {
+        max-inline-size: none;
+        padding: 0;
+    }
+
+    body {
+        background: white;
+        color: black;
+    }
+}
+
+}

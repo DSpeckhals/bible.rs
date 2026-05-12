@@ -143,6 +143,16 @@ async fn main() -> io::Result<()> {
             // sw.js needs Service-Worker-Allowed: / so its scope can be the site root.
             // Must be registered before the /static Files service.
             .service(web::resource("/static/js/sw.js").route(web::get().to(service_worker)))
+            // Font filenames are content-stable, so mark them immutable for
+            // a year. Must be registered before the catch-all /static Files.
+            .service(
+                web::scope("/static/fonts")
+                    .wrap(
+                        DefaultHeaders::new()
+                            .add(("Cache-Control", "public, max-age=31536000, immutable")),
+                    )
+                    .service(actix_files::Files::new("", "./web/dist/fonts").use_etag(true)),
+            )
             .service(actix_files::Files::new("/static", "./web/dist").use_etag(true))
             .service(web::resource("about").to(view::about))
             .service(
@@ -172,7 +182,7 @@ async fn main() -> io::Result<()> {
             )
             .default_service(web::route().to(HttpResponse::NotFound))
     })
-    .bind("0.0.0.0:8080")?
+    .bind(env::var("BIND_ADDR").unwrap_or_else(|_| "0.0.0.0:8080".to_string()))?
     .run()
     .await
 }
