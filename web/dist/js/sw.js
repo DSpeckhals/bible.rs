@@ -1,4 +1,4 @@
-const VERSION = "v7";
+const VERSION = "v8";
 const PRECACHE = "biblers-precache-" + VERSION;
 const RUNTIME_HTML = "biblers-html-" + VERSION;
 const RUNTIME_STATIC = "biblers-static-" + VERSION;
@@ -21,6 +21,9 @@ const PRECACHE_URLS = [
     "/static/fonts/literata-latin.woff2",
     "/static/img/arrow-back.svg",
     "/static/img/arrow-forward.svg",
+    "/static/img/bible.rs-32x32.png",
+    "/static/img/bible.rs-192x192.png",
+    "/static/img/bible.rs-512x512.png",
     "/static/img/bible.rs.svg",
     "/static/img/book.svg",
     "/static/img/info.svg",
@@ -101,12 +104,16 @@ async function networkFirstHtml(request) {
 async function cacheFirstStatic(request) {
     const cached = await caches.match(request);
     if (cached) return cached;
-    const response = await fetch(request);
-    if (response && response.ok) {
-        const cache = await caches.open(RUNTIME_STATIC);
-        cache.put(request, response.clone());
+    try {
+        const response = await fetch(request);
+        if (response && response.ok) {
+            const cache = await caches.open(RUNTIME_STATIC);
+            cache.put(request, response.clone());
+        }
+        return response;
+    } catch (e) {
+        return Response.error();
     }
-    return response;
 }
 
 self.addEventListener("fetch", (event) => {
