@@ -101,46 +101,6 @@
     });
 })();
 
-// Swipe navigation between chapters via pointer events.
-// Reads <link rel="prev/next"> hrefs from the document head; only active
-// when at least one of them is present. View transitions are CSS-driven
-// (@view-transition { navigation: auto }) — no JS required.
-(function () {
-    var main = document.querySelector("main");
-    if (!main) return;
-    var prev = document.getElementById("link-prev");
-    var next = document.getElementById("link-next");
-    if (!prev && !next) return;
-
-    var startX = 0;
-    var startY = 0;
-    var startTime = 0;
-    var THRESHOLD = 80;
-    var ALLOWED_TIME = 350;
-
-    main.addEventListener("pointerdown", function (e) {
-        if (e.pointerType === "mouse") return;
-        startX = e.clientX;
-        startY = e.clientY;
-        startTime = performance.now();
-    });
-
-    main.addEventListener("pointerup", function (e) {
-        if (e.pointerType === "mouse") return;
-        var dx = e.clientX - startX;
-        var dy = e.clientY - startY;
-        var dt = performance.now() - startTime;
-        if (dt > ALLOWED_TIME) return;
-        if (Math.abs(dx) < Math.abs(dy)) return;
-        if (Math.abs(dx) < THRESHOLD) return;
-        if (dx > 0 && prev) {
-            window.location.assign(prev.getAttribute("href"));
-        } else if (dx < 0 && next) {
-            window.location.assign(next.getAttribute("href"));
-        }
-    });
-})();
-
 // Service worker registration.
 if ("serviceWorker" in navigator) {
     window.addEventListener("load", function () {
