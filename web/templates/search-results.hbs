@@ -1,22 +1,20 @@
 {{~ #*inline "page"}}
-<div class="container search-results">
-    <nav class="top-nav">
-        <a href="/">
-            <img src="/static/img/bible.rs.svg" alt="BIBLE.RS" height="100" width="100" class="logo">
-        </a>
-    </nav>
-    <h1>
-        {{@root.meta.title}}
-    </h1>
-    <nav>
-        <ol>
-            {{~ #each matches as |match|}}
-            <li>
-                <a href="{{match.link.url}}"><strong>{{match.link.label}}</strong> | {{{match.text}}}</a>
-            </li>
-            {{~ /each}}
-        </ol>
-    </nav>
-</div>
+<section class="page page--wide search-results">
+    <h1 class="search-results__title">{{@root.meta.title}}</h1>
+    {{~ #if matches}}
+    <ol class="search-results__list">
+        {{~ #each matches as |match|}}
+        <li class="search-results__item">
+            <a href="{{match.link.url}}">
+                <strong>{{match.link.label}}</strong>
+                <span>{{{match.text}}}</span>
+            </a>
+        </li>
+        {{~ /each}}
+    </ol>
+    {{~ else}}
+    <p class="search-results__empty">No verses matched. Try a different word or reference.</p>
+    {{~ /if}}
+</section>
 {{~ /inline}}
 {{~> base ~}}

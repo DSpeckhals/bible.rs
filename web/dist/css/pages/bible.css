@@ -1,0 +1,66 @@
+/* All-books page: grid of every book in the KJV.
+   Container queries drive the column count so the grid responds to the
+   reading column, not the viewport. */
+
+@layer pages {
+
+.all-books {
+    container-type: inline-size;
+
+    .all-books__hero {
+        text-align: center;
+        margin-block: var(--gap-lg) var(--gap);
+
+        h1 {
+            margin: 0;
+            font-size: clamp(2rem, 1.6rem + 2vw, 3rem);
+            letter-spacing: -0.02em;
+        }
+
+        p {
+            margin-block-start: 0.5rem;
+            color: var(--ink-muted);
+            font-family: var(--font-ui);
+            font-size: 1rem;
+        }
+    }
+
+    .book-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 11rem), 1fr));
+        gap: 0.5rem;
+        margin-block-start: var(--gap);
+    }
+
+    .book-grid__item > a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        block-size: 100%;
+        min-block-size: 3rem;
+        padding: 0.75rem 1rem;
+        border-radius: var(--radius);
+        border: 1px solid var(--ink-faint);
+        color: var(--ink);
+        font-family: var(--font-ui);
+        font-size: 0.95rem;
+        line-height: 1.2;
+        text-align: center;
+        transition: background var(--duration-fast) var(--ease-out),
+                    border-color var(--duration-fast) var(--ease-out),
+                    color var(--duration-fast) var(--ease-out),
+                    transform var(--duration-fast) var(--ease-out);
+
+        &:hover {
+            background: var(--accent-soft);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        &:active {
+            transform: scale(0.97);
+        }
+    }
+}
+
+}

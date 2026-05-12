@@ -1,0 +1,4 @@
+/* Cascade layer order — MUST load first, before any partial that uses @layer X { … }.
+   The first stylesheet that declares this order is the one that fixes it for the
+   document; subsequent @layer blocks merge into the named layers. */
+@layer reset, tokens, base, components, pages;

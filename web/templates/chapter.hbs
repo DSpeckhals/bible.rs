@@ -1,69 +1,46 @@
 {{~ #*inline "page"}}
-<div class="container chapter">
-    <nav class="top-nav">
-        <a href="{{links.books.url}}">
-            <img src="/static/img/bible.rs.svg" alt="{{links.books.label}}" height="100" width="100" class="logo">
-        </a>
+<article class="page chapter">
+    <nav class="page-nav" aria-label="Chapter navigation">
+        {{~ #if links.previous}}
+        <a class="nav-link nav-link--prev" rel="prev" href="{{links.previous.url}}" aria-label="Previous: {{links.previous.label}}"></a>
+        {{~ else}}
+        <span class="nav-spacer" aria-hidden="true"></span>
+        {{~ /if}}
+        <h1>{{reference_string}}</h1>
+        {{~ #if links.next}}
+        <a class="nav-link nav-link--next" rel="next" href="{{links.next.url}}" aria-label="Next: {{links.next.label}}"></a>
+        {{~ else}}
+        <span class="nav-spacer" aria-hidden="true"></span>
+        {{~ /if}}
     </nav>
-    <article>
 
-        <nav class="heading">
-            <div class="previous">
-                {{~ #if links.previous}}
-                <a href="{{links.previous.url}}" title="{{links.previous.label}}">
-                    <img src="/static/img/arrow-back.svg" alt="Back Arrow" height="28" width="28">
-                </a>
-                {{~ /if}}
-            </div>
-            <h1>{{reference_string}}</h1>
-            <div class="next">
-                {{~ #if links.next}}
-                <a href="{{links.next.url}}" title="{{links.next.label}}">
-                    <img src="/static/img/arrow-forward.svg" alt="Forward Arrow" height="28" width="28">
-                </a>
-                {{~ /if}}
-            </div>
-        </nav>
-
+    <ol class="verses">
         {{~ #each verses as |v|}}
-        <p id="v{{v.verse}}">
-            <a href="{{@root.data.links.current.url}}#v{{v.verse}}">
-                {{~ v.verse ~}}
-            </a>
-            {{{v.words}}}
-        </p>
+        <li id="v{{v.verse}}">
+            <a class="verse-num" href="{{@root.data.links.current.url}}#v{{v.verse}}" aria-label="Verse {{v.verse}}">{{~ v.verse ~}}</a>
+            <span class="verse-text">{{{v.words}}}</span>
+        </li>
         {{~ /each}}
+    </ol>
 
-        <nav class="footing">
-            <div class="previous">
-                {{~ #if links.previous}}
-                <a href="{{links.previous.url}}" title="{{links.previous.label}}">
-                    <img src="/static/img/arrow-back.svg" alt="Back Arrow" height="28" width="28">
-                </a>
-                {{~ /if}}
-            </div>
-            <div class="book">
-                {{~ #if reference.verses}}
-                <a href="{{links.chapter.url}}" title="{{links.chapter.label}}">
-                    <img src="/static/img/unfold-more.svg" alt="View all of {{links.chapter.label}}" height="28" width="28">
-                    View Full Chapter&nbsp;
-                </a>
-                {{~ /if}}
-                <a href="{{links.book.url}}" title="{{links.book.label}}">
-                    <img src="/static/img/book.svg" alt="Go to {{links.book.label}}" height="28" width="28">
-                    {{links.book.label}}
-                </a>
-            </div>
-            <div class="next">
-                {{~ #if links.next}}
-                <a href="{{links.next.url}}" title="{{links.next.label}}">
-                    <img src="/static/img/arrow-forward.svg" alt="Forward Arrow" height="28" width="28">
-                </a>
-                {{~ /if}}
-            </div>
-        </nav>
-
-    </article>
-</div>
+    <nav class="chapter-tools" aria-label="Chapter tools">
+        <div class="chapter-tools__side chapter-tools__side--prev">
+            {{~ #if links.previous}}
+            <a class="chapter-tools__link" rel="prev" href="{{links.previous.url}}" title="{{links.previous.label}}">{{links.previous.label}}</a>
+            {{~ /if}}
+        </div>
+        <div class="chapter-tools__center">
+            {{~ #if reference.verses}}
+            <a class="chapter-tools__link chapter-tools__link--full" href="{{links.chapter.url}}" title="{{links.chapter.label}}">Full Chapter</a>
+            {{~ /if}}
+            <a class="chapter-tools__link chapter-tools__link--book" href="{{links.book.url}}" title="{{links.book.label}}">{{links.book.label}}</a>
+        </div>
+        <div class="chapter-tools__side chapter-tools__side--next">
+            {{~ #if links.next}}
+            <a class="chapter-tools__link" rel="next" href="{{links.next.url}}" title="{{links.next.label}}">{{links.next.label}}</a>
+            {{~ /if}}
+        </div>
+    </nav>
+</article>
 {{~ /inline}}
 {{~> base ~}}

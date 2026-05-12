@@ -1,36 +1,27 @@
 {{~ #*inline "page"}}
-<div class="container book">
-    <nav class="top-nav">
-        <a href="{{links.books.url}}">
-            <img src="/static/img/bible.rs.svg" alt="BIBLE.RS" height="100" width="100" class="logo">
-        </a>
-    </nav>
-    <nav class="heading">
-        <div class="previous">
-            {{~ #if links.previous}}
-            <a href="{{links.previous.url}}" title="{{links.previous.label}}">
-                <img src="/static/img/arrow-back.svg" alt="Back Arrow" height="28" width="28">
-            </a>
-            {{~ /if}}
-        </div>
+<section class="page book">
+    <nav class="page-nav" aria-label="Book navigation">
+        {{~ #if links.previous}}
+        <a class="nav-link nav-link--prev" rel="prev" href="{{links.previous.url}}" aria-label="Previous: {{links.previous.label}}"></a>
+        {{~ else}}
+        <span class="nav-spacer" aria-hidden="true"></span>
+        {{~ /if}}
         <h1>{{book.name}}</h1>
-        <div class="next">
-            {{~ #if links.next}}
-            <a href="{{links.next.url}}" title="{{links.next.label}}">
-                <img src="/static/img/arrow-forward.svg" alt="Forward Arrow" height="28" width="28">
-            </a>
-            {{~ /if}}
-        </div>
+        {{~ #if links.next}}
+        <a class="nav-link nav-link--next" rel="next" href="{{links.next.url}}" aria-label="Next: {{links.next.label}}"></a>
+        {{~ else}}
+        <span class="nav-spacer" aria-hidden="true"></span>
+        {{~ /if}}
     </nav>
-    <nav>
-        <ol>
+    <nav aria-label="Chapters">
+        <ol class="chapter-grid">
             {{~ #each chapters as |c|}}
-            <li>
-                <a href="{{lookup @root.data.links.chapters @index}}">{{c}}</a>
+            <li class="chapter-grid__item">
+                <a href="{{lookup @root.data.links.chapters @index}}" aria-label="Chapter {{c}}">{{c}}</a>
             </li>
             {{~ /each}}
         </ol>
     </nav>
-</div>
+</section>
 {{~ /inline}}
-{{~> base}}
+{{~> base ~}}

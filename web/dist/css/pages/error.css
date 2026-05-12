@@ -1,0 +1,43 @@
+@layer pages {
+
+.error {
+    text-align: center;
+
+    .error__title {
+        margin-block: var(--gap-lg) var(--gap);
+        font-size: clamp(3rem, 2rem + 4vw, 5rem);
+        color: var(--accent);
+        letter-spacing: -0.02em;
+    }
+
+    .error__message {
+        margin-block: var(--gap);
+        color: var(--ink-muted);
+        font-size: 1.125rem;
+        font-family: var(--font-ui);
+    }
+
+    .error__home {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin-block-start: var(--gap-lg);
+        padding: 0.65rem 1.25rem;
+        border-radius: 999px;
+        border: 1px solid var(--ink-faint);
+        color: var(--ink);
+        font-family: var(--font-ui);
+        font-size: 0.95rem;
+        transition: background var(--duration-fast) var(--ease-out),
+                    color var(--duration-fast) var(--ease-out),
+                    border-color var(--duration-fast) var(--ease-out);
+
+        &:hover {
+            background: var(--accent-soft);
+            color: var(--accent);
+            border-color: var(--accent);
+        }
+    }
+}
+
+}

@@ -1,0 +1,82 @@
+/* Design tokens. CSS custom properties so the cascade and DevTools can see them,
+   and so we can flip the entire palette via [data-theme] or prefers-color-scheme. */
+
+@layer tokens {
+
+:root {
+    color-scheme: light dark;
+
+    /* Light palette: warm paper. */
+    --paper-l: oklch(98% 0.012 80);
+    --paper-elevated-l: oklch(95% 0.018 80);
+    --ink-l: oklch(22% 0.02 80);
+    --ink-muted-l: oklch(50% 0.02 80);
+    --ink-faint-l: oklch(86% 0.012 80);
+    --accent-l: oklch(55% 0.16 250);
+    --accent-soft-l: oklch(94% 0.04 250);
+    --selection-l: oklch(92% 0.06 90);
+
+    /* Dark palette: warm ink on cool deep paper. */
+    --paper-d: oklch(17% 0.012 260);
+    --paper-elevated-d: oklch(22% 0.014 260);
+    --ink-d: oklch(93% 0.014 80);
+    --ink-muted-d: oklch(68% 0.018 80);
+    --ink-faint-d: oklch(32% 0.015 260);
+    --accent-d: oklch(75% 0.14 250);
+    --accent-soft-d: oklch(28% 0.06 250);
+    --selection-d: oklch(38% 0.05 80);
+
+    /* Resolved tokens — paired via light-dark() so a single declaration works
+       for both schemes when color-scheme is set. */
+    --paper: light-dark(var(--paper-l), var(--paper-d));
+    --paper-elevated: light-dark(var(--paper-elevated-l), var(--paper-elevated-d));
+    --ink: light-dark(var(--ink-l), var(--ink-d));
+    --ink-muted: light-dark(var(--ink-muted-l), var(--ink-muted-d));
+    --ink-faint: light-dark(var(--ink-faint-l), var(--ink-faint-d));
+    --accent: light-dark(var(--accent-l), var(--accent-d));
+    --accent-soft: light-dark(var(--accent-soft-l), var(--accent-soft-d));
+    --selection: light-dark(var(--selection-l), var(--selection-d));
+
+    /* Typography. */
+    --font-body: "Literata", "Iowan Old Style", "Charter", Georgia, "Times New Roman", serif;
+    --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-size-body: clamp(1.0625rem, 0.95rem + 0.5vw, 1.1875rem);
+    --font-size-verse: clamp(1.0625rem, 0.95rem + 0.4vw, 1.1875rem);
+    --font-size-h1: clamp(1.625rem, 1.25rem + 1.5vw, 2.25rem);
+    --font-size-h2: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem);
+    --line-height-body: 1.7;
+    --line-height-tight: 1.25;
+
+    /* Layout. */
+    --measure: 38rem;
+    --measure-wide: 64rem;
+    --gap: clamp(1rem, 0.85rem + 0.6vw, 1.5rem);
+    --gap-lg: clamp(1.5rem, 1.2rem + 1.2vw, 2.5rem);
+    --radius: 0.5rem;
+    --radius-sm: 0.25rem;
+
+    /* Motion. */
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --duration-fast: 150ms;
+    --duration-base: 240ms;
+}
+
+/* Manual theme overrides — set by the inline bootstrap script in <head>
+   (reads localStorage.theme = "light" | "dark" | "auto"). When "auto" or
+   absent, the :root color-scheme above lets the OS decide. */
+:root[data-theme="light"] {
+    color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+    color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :root {
+        --duration-fast: 0ms;
+        --duration-base: 0ms;
+    }
+}
+
+}

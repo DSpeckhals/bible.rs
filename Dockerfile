@@ -1,10 +1,6 @@
 ################### Rust Build ###################
 FROM docker.io/rust:trixie AS rust-build
 
-RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get -y install sassc && \
-    rm -rf /var/lib/apt/lists/*
-
 WORKDIR /usr/src/biblers
 
 COPY ./Cargo.lock ./Cargo.toml ./
@@ -22,10 +18,6 @@ COPY ./db/src ./db/src
 COPY ./web/src ./web/src
 RUN cargo build --release -p web
 
-COPY ./web/styles ./web/styles
-RUN mkdir -p web/dist/css && \
-    sassc web/styles/index.scss web/dist/css/style.css
-
 
 ################### Server Build ###################
 FROM docker.io/debian:trixie-slim
@@ -34,7 +26,6 @@ WORKDIR /app
 
 COPY --from=rust-build /usr/src/biblers/target/release/web ./biblers
 COPY ./web/dist ./web/dist
-COPY --from=rust-build /usr/src/biblers/web/dist/css/style.css ./web/dist/css/style.css
 COPY ./db/migrations/ ./db/migrations/
 COPY ./web/templates/ ./web/templates/
 
