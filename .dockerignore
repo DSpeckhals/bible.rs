@@ -1,4 +1,36 @@
+# VCS
 .git/
+.gitignore
+.gitmodules
+.gitattributes
+
+# Build output
 target/
+
+# Editor / IDE
+.vscode/
+*.swp
+.DS_Store
+
+# Project meta not needed at runtime
+.github/
+.claude/
+AGENTS.md
+README.md
+CLAUDE.md
+LICENSE
+
+# Deploy configs (read by flyctl, not by Docker)
+fly.toml
 Dockerfile
+.dockerignore
+
+# Developer tooling not needed at runtime
+scripts/
+
+# Local env
 .env
+.env.*
+
+# Generated CSS — rebuilt in the image
+web/dist/css/style.css

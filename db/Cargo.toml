@@ -2,22 +2,14 @@
 name = "db"
 version = "0.1.0"
 authors = ["Dustin Speckhals <dustin1114@gmail.com>"]
-edition = "2021"
-
-[dependencies.diesel]
-version = "2.0.2"
-default-features = false
-features = ["sqlite", "r2d2"]
-
-[dependencies.libsqlite3-sys]
-version = ">=0.17.2, <0.26.0"
-default-features = false
-features = ["buildtime_bindgen"]
+edition = "2024"
 
 [dependencies]
-diesel_migrations = "2.0.0"
-env_logger = "0.10.0"
-lazy_static = "1.4.0"
-serde = "1.0.152"
-serde_derive = "1.0.152"
-thiserror = "1.0.38"
+diesel = { version = "2.3.9", default-features = false, features = ["sqlite", "r2d2"] }
+libsqlite3-sys = { version = ">=0.30.1,<0.38.0", default-features = false, features = ["bundled"] }
+diesel_migrations = "2.3.2"
+env_logger = "0.11.10"
+lazy_static = "1.5.0"
+serde = "1.0.228"
+serde_derive = "1.0.228"
+thiserror = "2.0.18"

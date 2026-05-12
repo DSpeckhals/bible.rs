@@ -8,7 +8,7 @@ use crate::{DbError, VerseFormat};
 /// Max number of search results returned from the database.
 const SEARCH_RESULT_LIMIT: i64 = 15;
 
-sql_function!(
+define_sql_function!(
     fn highlight(table_name: Text, column_index: Integer, prefix: Text, suffix: Text) -> Text
 );
 

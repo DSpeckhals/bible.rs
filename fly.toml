@@ -1,0 +1,19 @@
+app = "biblers"
+primary_region = "iad"
+
+[build]
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[env]
+  DATABASE_URL = "/opt/data/bible.db"
+
+[mount]
+  source = "biblers_data"
+  destination = "/opt/data"

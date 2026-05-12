@@ -1,6 +1,6 @@
 use std::str;
 
-use actix_web::{test, web, App, HttpRequest, HttpResponse};
+use actix_web::{App, HttpRequest, HttpResponse, test, web};
 use handlebars::Handlebars;
 use lazy_static::lazy_static;
 use serde::de::DeserializeOwned;
@@ -111,8 +111,10 @@ where
 pub async fn html_response(uri: &str) -> String {
     let mut template = Handlebars::new();
     template.set_strict_mode(true);
+    let mut opts = handlebars::DirectorySourceOptions::default();
+    opts.tpl_extension = ".hbs".to_string();
     template
-        .register_templates_directory(".hbs", "./templates/")
+        .register_templates_directory("./templates/", opts)
         .expect("Could not register template files");
 
     let srv = test::init_service(

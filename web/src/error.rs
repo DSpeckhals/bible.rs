@@ -1,8 +1,8 @@
 use std::convert::From;
 
-use actix_web::error::BlockingError;
 use actix_web::HttpResponse;
 use actix_web::ResponseError;
+use actix_web::error::BlockingError;
 use handlebars::Handlebars;
 use lazy_static::lazy_static;
 use log::error;

@@ -2,11 +2,11 @@
 name = "cli"
 version = "0.1.0"
 authors = ["Dustin Speckhals <dustin1114@gmail.com>"]
-edition = "2021"
+edition = "2024"
 
 [dependencies.db]
 path = "../db"
 
 [dependencies]
-clap = { version = "4.0.32", features = ["derive"] }
+clap = { version = "4.6.1", features = ["derive"] }
 dotenv = "0.15.0"

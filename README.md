@@ -55,9 +55,9 @@ cookies or third-party analytic services involved in Bible.rs.
 [Github](https://github.com/DSpeckhals/bible.rs) and create a pull request.
 
 ## Docker
-1. Pull the Git repository, including submodules
+1. Clone the Git repository, including submodules
 
-    `git pull https://github.com/DSpeckhals/bible.rs.git`
+    `git clone https://github.com/DSpeckhals/bible.rs.git --recurse-submodules`
 
 If you've already pulled the repo but not the migrations submodule, run `git submodule update --init --recursive`
 
