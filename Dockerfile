@@ -16,6 +16,8 @@ RUN cargo build --release && rm -rf db/src web/src
 
 COPY ./db/src ./db/src
 COPY ./web/src ./web/src
+# sw.js is embedded into the binary via include_bytes!, so it must exist at build time.
+COPY ./web/dist/js/sw.js ./web/dist/js/sw.js
 RUN cargo build --release -p web
 
 

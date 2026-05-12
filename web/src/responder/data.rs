@@ -1,7 +1,7 @@
 use actix_web::HttpRequest;
 use handlebars::Handlebars;
 use log::error;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 use db::models::{Book, Reference, Verse, VerseFTS};
 
@@ -106,9 +106,12 @@ pub struct AllBooksData {
 }
 
 impl AllBooksData {
-    pub fn new(books: Vec<Book>, req: &HttpRequest) -> Self {
-        let links = AllBooksLinks::new(books.to_owned(), req);
-        Self { books, links }
+    pub fn new(books: &[Book], req: &HttpRequest) -> Self {
+        let links = AllBooksLinks::new(books, req);
+        Self {
+            books: books.to_vec(),
+            links,
+        }
     }
 }
 

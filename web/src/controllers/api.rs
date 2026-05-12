@@ -2,7 +2,7 @@ use actix_web::web;
 use actix_web::{HttpRequest, HttpResponse};
 
 use db::models::Reference;
-use db::{SwordDrillable, VerseFormat};
+use db::{SwordDrillable, VerseFormat, pooled_conn};
 
 use crate::ServerData;
 use crate::controllers::SearchParams;
@@ -21,14 +21,15 @@ where
     SD: SwordDrillable,
 {
     let (path_reference,) = params.into_inner();
-    let db = data.db.to_owned();
+    let db = data.db.clone();
     let books = &data.books;
     let raw_reference = path_reference.replace('/', ".");
 
     if let Ok(reference) = raw_reference.parse::<Reference>() {
-        let data_reference = reference.to_owned();
+        let data_reference = reference.clone();
         let result = web::block(move || {
-            SD::verses(&reference, VerseFormat::PlainText, &mut db.get().unwrap())
+            let mut conn = pooled_conn(&db)?;
+            SD::verses(&reference, VerseFormat::PlainText, &mut conn)
         })
         .await??;
 
@@ -48,18 +49,21 @@ where
     SD: SwordDrillable,
 {
     if let Ok(reference) = query.q.parse::<Reference>() {
+        let db = data.db.clone();
         let results = web::block(move || {
-            SD::verses(
-                &reference,
-                VerseFormat::PlainText,
-                &mut data.db.get().unwrap(),
-            )
+            let mut conn = pooled_conn(&db)?;
+            SD::verses(&reference, VerseFormat::PlainText, &mut conn)
         })
         .await??;
         Ok(HttpResponse::Ok().json(SearchResultData::from_verses(results, &req)))
     } else {
-        let results =
-            web::block(move || SD::search(&query.q, &mut data.db.get().unwrap())).await??;
+        let db = data.db.clone();
+        let q = query.into_inner().q;
+        let results = web::block(move || {
+            let mut conn = pooled_conn(&db)?;
+            SD::search(&q, &mut conn)
+        })
+        .await??;
         Ok(HttpResponse::Ok().json(SearchResultData::from_verses_fts(results, &req)))
     }
 }

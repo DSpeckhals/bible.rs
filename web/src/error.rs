@@ -1,10 +1,9 @@
-use std::convert::From;
+use std::sync::LazyLock;
 
 use actix_web::HttpResponse;
 use actix_web::ResponseError;
 use actix_web::error::BlockingError;
 use handlebars::Handlebars;
-use lazy_static::lazy_static;
 use log::error;
 use thiserror::Error;
 
@@ -51,6 +50,12 @@ impl From<DbError> for JsonError {
     }
 }
 
+impl From<BlockingError> for JsonError {
+    fn from(f: BlockingError) -> Self {
+        JsonError(Error::Db(f.to_string()))
+    }
+}
+
 impl ResponseError for JsonError {
     fn error_response(&self) -> HttpResponse {
         match &self.0 {
@@ -59,7 +64,7 @@ impl ResponseError for JsonError {
                 HttpResponse::InternalServerError().json(ErrorData::from_error(&self.0))
             }
             Error::Db(cause) => {
-                error!("Database error: {}", cause);
+                error!("Database error: {cause}");
                 HttpResponse::InternalServerError().json(ErrorData::new(cause))
             }
             Error::BookNotFound { .. } => HttpResponse::Ok().json(SearchResultData::empty()),
@@ -70,22 +75,14 @@ impl ResponseError for JsonError {
     }
 }
 
-impl From<BlockingError> for JsonError {
-    fn from(f: BlockingError) -> Self {
-        f.into()
-    }
-}
-
-lazy_static! {
-    static ref ERR_TPL: Handlebars<'static> = {
-        let mut tpl = Handlebars::new();
-        tpl.register_template_file("base", "./web/templates/base.hbs")
-            .unwrap();
-        tpl.register_template_file("error", "./web/templates/error.hbs")
-            .unwrap();
-        tpl
-    };
-}
+static ERR_TPL: LazyLock<Handlebars<'static>> = LazyLock::new(|| {
+    let mut tpl = Handlebars::new();
+    tpl.register_template_file("base", "./web/templates/base.hbs")
+        .unwrap();
+    tpl.register_template_file("error", "./web/templates/error.hbs")
+        .unwrap();
+    tpl
+});
 
 #[derive(Error, Debug)]
 #[error("Error: {0}")]
@@ -98,11 +95,19 @@ impl From<DbError> for HtmlError {
     }
 }
 
+impl From<BlockingError> for HtmlError {
+    fn from(f: BlockingError) -> Self {
+        HtmlError(Error::Db(f.to_string()))
+    }
+}
+
 impl ResponseError for HtmlError {
     fn error_response(&self) -> HttpResponse {
         let body = TemplateData::new(ErrorData::from_error(&self.0), Meta::for_error())
             .to_html("error", &ERR_TPL)
-            .unwrap();
+            .unwrap_or_else(|_| {
+                "<!doctype html><title>Error</title><h1>Internal Server Error</h1>".to_string()
+            });
 
         match self.0 {
             Error::Db { .. } | Error::Template => {
@@ -114,11 +119,5 @@ impl ResponseError for HtmlError {
         }
         .content_type("text/html")
         .body(body)
-    }
-}
-
-impl From<BlockingError> for HtmlError {
-    fn from(f: BlockingError) -> Self {
-        f.into()
     }
 }

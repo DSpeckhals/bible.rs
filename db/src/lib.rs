@@ -1,8 +1,3 @@
-#![allow(proc_macro_derive_resolution_fallback)]
-
-#[macro_use]
-extern crate diesel;
-
 use std::path::Path;
 
 use diesel::prelude::*;
@@ -18,6 +13,9 @@ pub type SqliteConnectionManager = r2d2::ConnectionManager<SqliteConnection>;
 /// Type for a SQLite connection pool.
 pub type SqliteConnectionPool = r2d2::Pool<SqliteConnectionManager>;
 
+/// A pooled SQLite connection checked out of the pool.
+pub type PooledSqliteConnection = r2d2::PooledConnection<SqliteConnectionManager>;
+
 pub type DbConnection = SqliteConnection;
 
 /// Result formats for verses.
@@ -30,23 +28,23 @@ pub enum VerseFormat {
 
 #[derive(Clone, Error, Debug)]
 pub enum DbError {
-    #[error("'{}' was not found.", book)]
+    #[error("'{book}' was not found.")]
     BookNotFound { book: String },
 
-    #[error("There was a connection pool error.")]
+    #[error("There was a connection pool error: {cause}")]
     ConnectionPool { cause: String },
 
-    #[error("There was a database error. Root cause: {:?}.", cause)]
+    #[error("There was a database error. Root cause: {cause:?}.")]
     Other { cause: String },
 
-    #[error("There was a database migration error. Root cause: {:?}.", cause)]
+    #[error("There was a database migration error. Root cause: {cause:?}.")]
     Migration { cause: String },
 
-    #[error("'{}' is not a valid Bible reference.", reference)]
+    #[error("'{reference}' is not a valid Bible reference.")]
     InvalidReference { reference: String },
 }
 
-/// Builds a SQLite connection bool with the given URL.
+/// Builds a SQLite connection pool with the given URL.
 pub fn build_pool(db_url: &str) -> SqliteConnectionPool {
     r2d2::Pool::builder()
         .max_size(15)
@@ -56,7 +54,15 @@ pub fn build_pool(db_url: &str) -> SqliteConnectionPool {
 
 /// Establishes a non-pooled SQLite connection.
 pub fn establish_connection(db_url: &str) -> SqliteConnection {
-    SqliteConnection::establish(db_url).unwrap_or_else(|_| panic!("Error connecting to {}", db_url))
+    SqliteConnection::establish(db_url)
+        .unwrap_or_else(|e| panic!("Error connecting to {db_url}: {e}"))
+}
+
+/// Checks out a pooled connection, mapping pool errors to `DbError::ConnectionPool`.
+pub fn pooled_conn(pool: &SqliteConnectionPool) -> Result<PooledSqliteConnection, DbError> {
+    pool.get().map_err(|e| DbError::ConnectionPool {
+        cause: e.to_string(),
+    })
 }
 
 /// Run any pending Diesel migrations.

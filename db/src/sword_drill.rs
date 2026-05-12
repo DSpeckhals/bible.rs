@@ -1,3 +1,4 @@
+use diesel::define_sql_function;
 use diesel::prelude::*;
 use diesel::result::Error;
 use diesel::sql_types::{Integer, Text};
@@ -39,10 +40,10 @@ pub trait SwordDrillable {
     /// The inputted query string can be of two different formats:
     ///
     /// - `test foo`: match each word as its own token, and use that
-    /// to search.
+    ///   to search.
     /// - `"test foo"`: match the entire phrase. For the King James
-    /// version of the Bible, this is safe because there are no literal
-    /// quotation marks. This cannot be assumed safe in other translations.
+    ///   version of the Bible, this is safe because there are no literal
+    ///   quotation marks. This cannot be assumed safe in other translations.
     ///
     /// All characters other than alpha and quotations are stripped out.
     fn search(query: &str, conn: &mut SqliteConnection) -> Result<Vec<(VerseFTS, Book)>, DbError>;
@@ -143,7 +144,7 @@ impl SwordDrillable for SwordDrill {
         // Add back quotes safely if it had a quote before, and was removed
         // This makes FTS5 query the string as a phrase.
         let query = if had_quote {
-            format!("\"{}\"", query)
+            format!("\"{query}\"")
         } else {
             query
         };
@@ -165,7 +166,7 @@ impl SwordDrillable for SwordDrill {
                     books::testament,
                 ),
             ))
-            .filter(verses_fts::text.eq(format!("{}*", query)))
+            .filter(verses_fts::text.eq(format!("{query}*")))
             .order_by(verses_fts::rank)
             .limit(SEARCH_RESULT_LIMIT)
             .load::<(VerseFTS, Book)>(conn)

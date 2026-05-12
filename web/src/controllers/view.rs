@@ -2,7 +2,7 @@ use actix_web::web;
 use actix_web::{HttpRequest, HttpResponse};
 
 use db::models::Reference;
-use db::{SwordDrillable, VerseFormat};
+use db::{SwordDrillable, VerseFormat, pooled_conn};
 
 use crate::ServerData;
 use crate::controllers::SearchParams;
@@ -22,14 +22,8 @@ pub async fn about(data: web::Data<ServerData>) -> ViewResult {
 /// Handles HTTP requests for a list of all books.
 ///
 /// Return an HTML page that lists all books in the Bible.
-pub async fn all_books<SD>(data: web::Data<ServerData>, req: HttpRequest) -> ViewResult
-where
-    SD: SwordDrillable,
-{
-    let db = data.db.to_owned();
-    let books = web::block(move || SD::all_books(&mut db.get().unwrap())).await??;
-
-    let books_data = AllBooksData::new(books, &req);
+pub async fn all_books(data: web::Data<ServerData>, req: HttpRequest) -> ViewResult {
+    let books_data = AllBooksData::new(&data.books, &req);
     let meta = Meta::for_all_books(&books_data.links);
     let body = TemplateData::new(books_data, meta).to_html("all-books", &data.template)?;
 
@@ -49,8 +43,12 @@ where
     SD: SwordDrillable,
 {
     let (book_name,) = params.into_inner();
-    let db = data.db.to_owned();
-    let result = web::block(move || SD::book(&book_name, &mut db.get().unwrap())).await??;
+    let db = data.db.clone();
+    let result = web::block(move || {
+        let mut conn = pooled_conn(&db)?;
+        SD::book(&book_name, &mut conn)
+    })
+    .await??;
     let book_data = BookData::new(result, &data.books, &req);
     let body = TemplateData::new(
         &book_data,
@@ -75,15 +73,17 @@ where
     SD: SwordDrillable,
 {
     let (path_reference,) = params.into_inner();
-    let db = data.db.to_owned();
+    let db = data.db.clone();
     let books = &data.books;
     let raw_reference = path_reference.replace('/', ".");
 
     if let Ok(reference) = raw_reference.parse::<Reference>() {
-        let data_reference = reference.to_owned();
-        let result =
-            web::block(move || SD::verses(&reference, VerseFormat::Html, &mut db.get().unwrap()))
-                .await??;
+        let data_reference = reference.clone();
+        let result = web::block(move || {
+            let mut conn = pooled_conn(&db)?;
+            SD::verses(&reference, VerseFormat::Html, &mut conn)
+        })
+        .await??;
         let verses_data = VersesData::new(result, data_reference, books, &req);
 
         if verses_data.verses.is_empty() {
@@ -117,9 +117,14 @@ pub async fn search<SD>(
 where
     SD: SwordDrillable,
 {
-    let db = data.db.to_owned();
-    let q = query.q.to_owned();
-    let result = web::block(move || SD::search(&query.q, &mut db.get().unwrap())).await??;
+    let db = data.db.clone();
+    let q = query.into_inner().q;
+    let q_for_block = q.clone();
+    let result = web::block(move || {
+        let mut conn = pooled_conn(&db)?;
+        SD::search(&q_for_block, &mut conn)
+    })
+    .await??;
     let body = TemplateData::new(
         SearchResultData::from_verses_fts(result, &req),
         Meta::for_search(&q, &req.uri().to_string()),

@@ -9,7 +9,5 @@ diesel = { version = "2.3.9", default-features = false, features = ["sqlite", "r
 libsqlite3-sys = { version = ">=0.30.1,<0.38.0", default-features = false, features = ["bundled"] }
 diesel_migrations = "2.3.2"
 env_logger = "0.11.10"
-lazy_static = "1.5.0"
-serde = "1.0.228"
-serde_derive = "1.0.228"
+serde = { version = "1.0.228", features = ["derive"] }
 thiserror = "2.0.18"

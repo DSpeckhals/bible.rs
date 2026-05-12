@@ -612,10 +612,8 @@ dependencies = [
  "diesel",
  "diesel_migrations",
  "env_logger",
- "lazy_static",
  "libsqlite3-sys",
  "serde",
- "serde_derive",
  "thiserror",
 ]
 
@@ -1242,12 +1240,6 @@ name = "language-tags"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d4345964bb142484797b161f473a503a434de77149dd8c7427788c6e13379388"
-
-[[package]]
-name = "lazy_static"
-version = "1.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
 name = "leb128fmt"
@@ -2237,10 +2229,8 @@ dependencies = [
  "env_logger",
  "futures-util",
  "handlebars",
- "lazy_static",
  "log",
  "serde",
- "serde_derive",
  "serde_json",
  "thiserror",
  "url",

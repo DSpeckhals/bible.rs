@@ -1,5 +1,4 @@
-use serde::ser;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, ser};
 
 use db::models::{Book, Reference};
 
@@ -95,14 +94,14 @@ struct ThingJsonLd {
     url: String,
 }
 
-impl Default for ThingJsonLd {
-    fn default() -> Self {
+impl ThingJsonLd {
+    fn new(id: String, kind: Kind, name: String, url: String) -> Self {
         Self {
             context: CONTEXT.to_string(),
-            id: format!(url_format!(), ""),
-            kind: Kind::Thing,
-            name: "Default".to_string(),
-            url: format!(url_format!(), ""),
+            id,
+            kind,
+            name,
+            url,
         }
     }
 }
@@ -146,15 +145,16 @@ pub struct ListItemJsonLd {
 
 impl ListItemJsonLd {
     pub(super) fn new(link: &Link, position: i32, item_kind: Kind) -> Self {
+        let url = format!(url_format!(), link.url);
         Self {
             item: BreadcrumbItem {
-                id: format!(url_format!(), link.url),
+                id: url.clone(),
                 kind: item_kind,
-                name: link.label.to_owned(),
-                url: format!(url_format!(), link.url),
+                name: link.label.clone(),
+                url,
             },
             kind: Kind::ListItem,
-            name: link.label.to_owned(),
+            name: link.label.clone(),
             position,
         }
     }
@@ -240,15 +240,10 @@ pub struct WebSiteJsonLd {
 
 impl WebSiteJsonLd {
     pub(super) fn new() -> Self {
+        let url = format!(url_format!(), "/");
         Self {
             in_language: LANGUAGE.to_string(),
-            thing: ThingJsonLd {
-                id: format!(url_format!(), "/"),
-                kind: Kind::Website,
-                name: NAME.to_string(),
-                url: format!(url_format!(), "/"),
-                ..ThingJsonLd::default()
-            },
+            thing: ThingJsonLd::new(url.clone(), Kind::Website, NAME.to_string(), url),
             potential_action: SearchActionJsonLd::new(),
         }
     }
@@ -266,25 +261,23 @@ pub struct AboutJsonLd {
 
 impl AboutJsonLd {
     pub(super) fn new() -> Self {
-        let person_thing = ThingJsonLd {
-            id: CREATOR_URL.to_string(),
-            kind: Kind::Person,
-            name: format!("{} {}", CREATOR_FIRST_NAME, CREATOR_LAST_NAME),
-            url: CREATOR_URL.to_string(),
-            ..ThingJsonLd::default()
-        };
         let creator = PersonJsonLd {
-            thing: person_thing,
+            thing: ThingJsonLd::new(
+                CREATOR_URL.to_string(),
+                Kind::Person,
+                format!("{CREATOR_FIRST_NAME} {CREATOR_LAST_NAME}"),
+                CREATOR_URL.to_string(),
+            ),
             family_name: CREATOR_LAST_NAME.to_string(),
             given_name: CREATOR_FIRST_NAME.to_string(),
         };
-        let thing = ThingJsonLd {
-            id: format!(url_format!(), "/about"),
-            kind: Kind::AboutPage,
-            name: format!("About {}", NAME),
-            url: format!(url_format!(), "/about"),
-            ..ThingJsonLd::default()
-        };
+        let about_url = format!(url_format!(), "/about");
+        let thing = ThingJsonLd::new(
+            about_url.clone(),
+            Kind::AboutPage,
+            format!("About {NAME}"),
+            about_url,
+        );
 
         Self {
             creator,
@@ -314,16 +307,11 @@ impl AllBooksJsonLd {
             .map(|b| PartJsonLd {
                 id: format!(url_format!(), b.url),
                 kind: Kind::Book,
-                name: b.label.to_owned(),
+                name: b.label.clone(),
             })
             .collect();
-        let thing = ThingJsonLd {
-            id: format!(url_format!(), ""),
-            kind: Kind::BookSeries,
-            name: NAME.to_string(),
-            url: format!(url_format!(), ""),
-            ..ThingJsonLd::default()
-        };
+        let url = format!(url_format!(), "");
+        let thing = ThingJsonLd::new(url.clone(), Kind::BookSeries, NAME.to_string(), url);
 
         Self {
             has_part,
@@ -363,13 +351,8 @@ impl BookJsonLd {
             kind: Kind::BookSeries,
             name: NAME.to_string(),
         };
-        let thing = ThingJsonLd {
-            id: format!(url_format!(), links.current.url),
-            kind: Kind::Book,
-            name: book.name.to_owned(),
-            url: format!(url_format!(), links.current.url),
-            ..ThingJsonLd::default()
-        };
+        let url = format!(url_format!(), links.current.url);
+        let thing = ThingJsonLd::new(url.clone(), Kind::Book, book.name.clone(), url);
 
         Self {
             has_part,
@@ -393,17 +376,12 @@ pub struct ReferenceJsonLd {
 
 impl ReferenceJsonLd {
     pub(super) fn new(reference: &Reference, links: &VersesLinks) -> Self {
-        let thing = ThingJsonLd {
-            id: format!(url_format!(), links.current.url),
-            kind: Kind::Chapter,
-            name: reference.to_string(),
-            url: format!(url_format!(), links.current.url),
-            ..ThingJsonLd::default()
-        };
+        let url = format!(url_format!(), links.current.url);
+        let thing = ThingJsonLd::new(url.clone(), Kind::Chapter, reference.to_string(), url);
         let is_part_of = PartJsonLd {
             id: format!(url_format!(), links.book.url),
             kind: Kind::Book,
-            name: links.book.label.to_owned(),
+            name: links.book.label.clone(),
         };
 
         Self {
@@ -423,14 +401,14 @@ pub struct SearchResultsPageJsonLd {
 
 impl SearchResultsPageJsonLd {
     pub(super) fn new(query: &str, url: &str) -> Self {
+        let full_url = format!(url_format!(), url);
         Self {
-            thing: ThingJsonLd {
-                id: format!(url_format!(), url),
-                kind: Kind::SearchResultsPage,
-                name: format!("Search results for '{}'", query),
-                url: format!(url_format!(), url),
-                ..ThingJsonLd::default()
-            },
+            thing: ThingJsonLd::new(
+                full_url.clone(),
+                Kind::SearchResultsPage,
+                format!("Search results for '{query}'"),
+                full_url,
+            ),
         }
     }
 }

@@ -1,4 +1,4 @@
-use serde_derive::Deserialize;
+use serde::Deserialize;
 
 #[derive(Clone, Deserialize, Debug)]
 pub struct SearchParams {

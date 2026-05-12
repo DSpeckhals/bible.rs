@@ -1,8 +1,8 @@
 use std::str;
+use std::sync::LazyLock;
 
 use actix_web::{App, HttpRequest, HttpResponse, test, web};
 use handlebars::Handlebars;
-use lazy_static::lazy_static;
 use serde::de::DeserializeOwned;
 
 use db::models::*;
@@ -125,11 +125,7 @@ pub async fn html_response(uri: &str) -> String {
                 template,
             }))
             .service(web::resource("about").to(view::about))
-            .service(
-                web::resource("/")
-                    .name("bible")
-                    .to(view::all_books::<TestSwordDrill>),
-            )
+            .service(web::resource("/").name("bible").to(view::all_books))
             .service(
                 web::resource("{book}")
                     .name("book")
@@ -151,8 +147,8 @@ pub async fn html_response(uri: &str) -> String {
         .to_string()
 }
 
-lazy_static! {
-    pub static ref BOOKS: Vec<Book> = [
+pub static BOOKS: LazyLock<Vec<Book>> = LazyLock::new(|| {
+    [
         ("Genesis", 50),
         ("Exodus", 40),
         ("Leviticus", 27),
@@ -232,5 +228,5 @@ lazy_static! {
             Testament::New
         },
     })
-    .collect();
-}
+    .collect()
+});

@@ -47,12 +47,13 @@ async fn sitemap_xml() -> std::io::Result<NamedFile> {
     NamedFile::open("./web/dist/sitemap.xml")
 }
 
-async fn service_worker() -> std::io::Result<HttpResponse> {
-    let bytes = std::fs::read("./web/dist/js/sw.js")?;
-    Ok(HttpResponse::Ok()
+const SERVICE_WORKER_JS: &[u8] = include_bytes!("../dist/js/sw.js");
+
+async fn service_worker() -> HttpResponse {
+    HttpResponse::Ok()
         .insert_header(("Service-Worker-Allowed", "/"))
         .insert_header((header::CONTENT_TYPE, "application/javascript"))
-        .body(bytes))
+        .body(SERVICE_WORKER_JS)
 }
 
 #[actix_web::main]
@@ -64,18 +65,18 @@ async fn main() -> io::Result<()> {
 
     // Get env configuration
     let url = env::var("DATABASE_URL").unwrap_or_else(|_| "/tmp/biblers.db".to_string());
-    info!("Database: {}", url);
+    info!("Database: {url}");
 
-    // Run DB migrations for a new SQLite database
-    run_migrations(&mut establish_connection(&url)).expect("Error running migrations");
+    // Run migrations and preload book data on a single non-pooled connection.
+    let mut startup_conn = establish_connection(&url);
+    run_migrations(&mut startup_conn).expect("Error running migrations");
+    let books = prefetch_books(&mut startup_conn).expect("Error preloading books");
+    drop(startup_conn);
 
     let app_data = web::Data::new(ServerData {
-        // Build Database connection pool
         db: build_pool(&url),
-        // Preload book data with a non-pooled connection
-        books: prefetch_books(&mut establish_connection(&url)).unwrap(),
-        // Build handlebars registry
-        template: register_templates().unwrap(),
+        books,
+        template: register_templates().expect("Error registering templates"),
     });
 
     HttpServer::new(move || {
@@ -100,7 +101,7 @@ async fn main() -> io::Result<()> {
                         .path_and_query()
                         .map(|pq| pq.as_str())
                         .unwrap_or("/");
-                    let location = format!("https://bible.rs{}", path_and_query);
+                    let location = format!("https://bible.rs{path_and_query}");
                     let resp = req.into_response(
                         HttpResponse::MovedPermanently()
                             .insert_header((header::LOCATION, location))
@@ -158,7 +159,7 @@ async fn main() -> io::Result<()> {
             .service(
                 web::resource("/")
                     .name("bible")
-                    .route(web::get().to(view::all_books::<SwordDrill>)),
+                    .route(web::get().to(view::all_books)),
             )
             .service(web::resource("search").route(web::get().to(view::search::<SwordDrill>)))
             // robots.txt and sitemap.xml must be registered before the {book} catch-all,

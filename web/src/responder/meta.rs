@@ -1,4 +1,4 @@
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 use db::models::{Book, Reference, Verse};
 
@@ -98,9 +98,9 @@ impl Meta {
     }
 
     pub fn for_search(query: &str, url: &str) -> Self {
-        let results_string = format!("Results for '{}'", query);
+        let results_string = format!("Results for '{query}'");
         Self {
-            description: results_string.to_owned(),
+            description: results_string.clone(),
             json_ld: vec![JsonLd::SearchResults(SearchResultsPageJsonLd::new(
                 query, url,
             ))],

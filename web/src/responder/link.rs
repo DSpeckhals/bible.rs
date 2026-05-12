@@ -3,7 +3,7 @@ use std::ops::RangeInclusive;
 use actix_web::HttpRequest;
 use actix_web::error::UrlGenerationError;
 use log::error;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use url::Url;
 
 use db::models::{Book, Reference};
@@ -12,7 +12,7 @@ use db::models::{Book, Reference};
 pub const NAME: &str = "Bible.rs";
 
 fn invalid_url(e: UrlGenerationError) -> Url {
-    error!("{:?}", e);
+    error!("{e:?}");
     Url::parse("https://bible.rs").unwrap()
 }
 
@@ -26,40 +26,34 @@ fn book_url(b: &str, req: &HttpRequest) -> Link {
 
 /// Generates a chapter URL for the given book and chapter.
 fn chapter_url(b: &str, c: i32, req: &HttpRequest) -> Link {
-    let chapter_string = c.to_string();
     Link::new(
-        &req.url_for("reference", [format!("{}/{}", b, chapter_string)])
+        &req.url_for("reference", [format!("{b}/{c}")])
             .unwrap_or_else(invalid_url),
-        format!("{} {}", b, chapter_string),
+        format!("{b} {c}"),
     )
 }
 
 /// Generates a verse URL from the given book, chapter, and verse.
 pub(super) fn verse_url(b: &str, c: i32, v: i32, req: &HttpRequest) -> Link {
-    let chapter_string = c.to_string();
-    let verse_string = v.to_string();
     let mut url = req
-        .url_for("reference", [format!("{}/{}", b, chapter_string)])
+        .url_for("reference", [format!("{b}/{c}")])
         .unwrap_or_else(invalid_url);
-    url.set_fragment(Some(&format!("v{}", verse_string)));
-    Link::new(&url, format!("{} {}:{}", b, chapter_string, verse_string))
+    url.set_fragment(Some(&format!("v{v}")));
+    Link::new(&url, format!("{b} {c}:{v}"))
 }
 
 /// Generates a URL for verses from the given book, chapter, and verse range.
 fn verse_range_url(b: &str, c: i32, verses: &RangeInclusive<i32>, req: &HttpRequest) -> Link {
-    let chapter_string = c.to_string();
-    let verses_string = if verses.start() == verses.end() {
-        verses.start().to_string()
+    let (start, end) = (verses.start(), verses.end());
+    let verses_string = if start == end {
+        start.to_string()
     } else {
-        format!("{}-{}", verses.start(), verses.end())
+        format!("{start}-{end}")
     };
     Link::new(
-        &req.url_for(
-            "reference",
-            [format!("{}/{}/{}", b, chapter_string, verses_string)],
-        )
-        .unwrap_or_else(invalid_url),
-        format!("{} {}:{}", b, chapter_string, verses_string),
+        &req.url_for("reference", [format!("{b}/{c}/{verses_string}")])
+            .unwrap_or_else(invalid_url),
+        format!("{b} {c}:{verses_string}"),
     )
 }
 
@@ -235,7 +229,7 @@ pub struct AllBooksLinks {
 }
 
 impl AllBooksLinks {
-    pub(super) fn new(books: Vec<Book>, req: &HttpRequest) -> Self {
+    pub(super) fn new(books: &[Book], req: &HttpRequest) -> Self {
         Self {
             books: books.iter().map(|b| book_url(&b.name, req)).collect(),
         }
