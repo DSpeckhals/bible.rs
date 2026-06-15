@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512">
+  <!-- Background fills the entire safe zone so the circle crop has a clean background. -->
+  <rect width="512" height="512" fill="#fbf7f0"/>
+  <!-- Original icon centered within the 80% safe zone (51.2px padding each side).
+       The icon's native aspect ratio is 1331.2×1104.9, so fitting by width (409.6px)
+       gives a height of ~340px, centered vertically: y = (512 - 340) / 2 = 86. -->
+  <image href="./bible.rs.svg" xlink:href="./bible.rs.svg"
+         x="51.2" y="86" width="409.6" height="340"/>
+</svg>

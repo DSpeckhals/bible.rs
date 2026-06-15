@@ -120,6 +120,13 @@ em {
     background: color-mix(in oklab, var(--paper) 88%, transparent);
 }
 
+@media (pointer: coarse) {
+    .site-header {
+        backdrop-filter: none;
+        background: var(--paper);
+    }
+}
+
 .site-logo {
     display: inline-flex;
     align-items: center;

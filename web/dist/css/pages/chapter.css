@@ -28,11 +28,11 @@
         transition: background var(--duration-base) var(--ease-out);
 
         &:target {
-            background: var(--selection);
+            background: var(--accent-soft);
             border-radius: var(--radius-sm);
             padding-inline: 0.5rem;
             margin-inline: -0.5rem;
-            box-shadow: 0 0 0 4px var(--selection);
+            box-shadow: 0 0 0 4px var(--accent-soft);
         }
     }
 

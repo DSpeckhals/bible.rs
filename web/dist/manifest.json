@@ -32,9 +32,9 @@
             "purpose": "any"
         },
         {
-            "src": "./img/bible.rs-512x512.png",
-            "sizes": "512x512",
-            "type": "image/png",
+            "src": "./img/bible.rs-maskable.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
             "purpose": "maskable"
         }
     ]

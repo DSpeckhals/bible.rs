@@ -1,4 +1,4 @@
-const VERSION = "v8";
+const VERSION = "v9";
 const PRECACHE = "biblers-precache-" + VERSION;
 const RUNTIME_HTML = "biblers-html-" + VERSION;
 const RUNTIME_STATIC = "biblers-static-" + VERSION;
@@ -24,6 +24,7 @@ const PRECACHE_URLS = [
     "/static/img/bible.rs-32x32.png",
     "/static/img/bible.rs-192x192.png",
     "/static/img/bible.rs-512x512.png",
+    "/static/img/bible.rs-maskable.svg",
     "/static/img/bible.rs.svg",
     "/static/img/book.svg",
     "/static/img/info.svg",
