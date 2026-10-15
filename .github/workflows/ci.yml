@@ -12,7 +12,7 @@ jobs:
 
   lint_test:
     name: Lint and Test
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-26.04
 
     steps:
       - name: Checkout Repository
